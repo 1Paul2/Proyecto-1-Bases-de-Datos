@@ -12,3 +12,6 @@ CREATE SYNONYM Syn_StockItemStockGroups FOR Warehouse.StockItemStockGroups;
 CREATE SYNONYM Syn_StockItemHoldings FOR Warehouse.StockItemHoldings;
 CREATE SYNONYM Syn_Colors FOR Warehouse.Colors;
 CREATE SYNONYM Syn_PackageTypes FOR Warehouse.PackageTypes;
+CREATE SYNONYM Syn_Invoices FOR Sales.Invoices;
+CREATE SYNONYM Syn_InvoiceLines FOR Sales.InvoiceLines;
+CREATE SYNONYM Syn_Customers FOR Sales.Customers;
