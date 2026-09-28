@@ -16,7 +16,8 @@ CREATE OR ALTER PROCEDURE SP_GetSuppliers
     @SupplierCategoryID INT = NULL
 AS
 BEGIN
-    SELECT S.SupplierName as SupplierName,
+    SELECT S.SupplierID as SupplierID,
+    S.SupplierName as SupplierName,
     SC.SupplierCategoryName as SupplierCategoryName,
     DM.DeliveryMethodName as DeliveryMethodName
     FROM Syn_Suppliers S
@@ -49,6 +50,7 @@ BEGIN
     S.PostalAddressLine2 as PostalAddressLine2,
     S.DeliveryLocation.Lat as DeliveryLatitude,
     S.DeliveryLocation.Long as DeliveryLongitude,
+    S.BankAccountBranch as BankAccountBranch,
     S.BankAccountName as BankAccountName,
     S.BankAccountNumber as BankAccountNumber,
     S.PaymentDays as PaymentDays
