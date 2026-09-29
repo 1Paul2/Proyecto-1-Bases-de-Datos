@@ -1,6 +1,6 @@
 USE WideWorldImporters;
 GO
-
+ -- #1
 CREATE OR ALTER PROCEDURE sp_estadistica_proveedor
     @proveedor VARCHAR(100),
     @categoria VARCHAR(100)
@@ -35,6 +35,7 @@ GO
 
 EXEC sp_estadistica '', '';
 
+ -- #2
 
 CREATE OR ALTER PROCEDURE sp_estadistica_cliente
     @NomCliente VARCHAR(100),
@@ -69,6 +70,9 @@ END;
 GO
 
 EXEC sp_estadistica_cliente '', '';
+
+
+ -- #3
 
 CREATE OR ALTER PROCEDURE sp_top5_productos_ganancia
     @anio INT = NULL   
@@ -115,3 +119,290 @@ GO
 
 EXEC sp_top5_productos_ganancia;       
 EXEC sp_top5_productos_ganancia 2015;   
+
+ -- #4
+
+CREATE OR ALTER PROCEDURE sp_top5_clientes_facturas
+    @anioInicio INT = NULL,  
+    @anioFin    INT = NULL    
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Si no se indican, se usa el rango completo de la base
+    IF @anioInicio IS NULL SELECT @anioInicio = MIN(YEAR(InvoiceDate)) FROM Syn_Invoices;
+    IF @anioFin    IS NULL SELECT @anioFin    = MAX(YEAR(InvoiceDate)) FROM Syn_Invoices;
+
+    -- Validar que los años existan en la base de datos
+    IF NOT EXISTS (SELECT 1 FROM Syn_Invoices WHERE YEAR(InvoiceDate) = @anioInicio)
+        THROW 50001, 'El año de inicio no existe en la base de datos.', 1;
+
+    IF NOT EXISTS (SELECT 1 FROM Syn_Invoices WHERE YEAR(InvoiceDate) = @anioFin)
+        THROW 50002, 'El año final no existe en la base de datos.', 1;
+
+    IF @anioInicio > @anioFin
+        THROW 50003, 'El año de inicio no puede ser mayor que el año final.', 1;
+
+    WITH TotalPorFactura AS (
+        SELECT
+            I.InvoiceID,
+            I.CustomerID,
+            YEAR(I.InvoiceDate) AS Anio,
+            SUM(IL.ExtendedPrice) AS TotalFactura
+        FROM Syn_Invoices I
+        INNER JOIN Syn_InvoiceLines IL ON IL.InvoiceID = I.InvoiceID
+        WHERE YEAR(I.InvoiceDate) BETWEEN @anioInicio AND @anioFin
+        GROUP BY I.InvoiceID, I.CustomerID, YEAR(I.InvoiceDate)
+    ),
+    FacturasPorCliente AS (
+        SELECT
+            T.Anio,
+            C.CustomerID,
+            C.CustomerName,
+            COUNT(*)            AS CantidadFacturas,
+            SUM(T.TotalFactura) AS MontoTotal
+        FROM TotalPorFactura T
+        INNER JOIN Syn_Customers C ON C.CustomerID = T.CustomerID
+        GROUP BY T.Anio, C.CustomerID, C.CustomerName
+    ),
+    Ranking AS (
+        SELECT
+            Anio,
+            CustomerName,
+            CantidadFacturas,
+            MontoTotal,
+            DENSE_RANK() OVER (PARTITION BY Anio ORDER BY CantidadFacturas DESC) AS Posicion
+        FROM FacturasPorCliente
+    )
+    SELECT
+        Anio,
+        Posicion,
+        CustomerName AS Cliente,
+        CantidadFacturas,
+        MontoTotal
+    FROM Ranking
+    WHERE Posicion <= 5
+    ORDER BY Anio, Posicion, CustomerName;
+END;
+GO
+
+EXEC sp_top5_clientes_facturas;            
+EXEC sp_top5_clientes_facturas 2014, 2015;  
+EXEC sp_top5_clientes_facturas 2015, 2015;  
+
+ -- #5
+
+
+CREATE OR ALTER PROCEDURE sp_top5_proveedores_ordenes
+    @anioInicio INT = NULL,  
+    @anioFin    INT = NULL   
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Si no se indican, se usa el rango completo de la base
+    IF @anioInicio IS NULL SELECT @anioInicio = MIN(YEAR(OrderDate)) FROM Syn_PurchaseOrders;
+    IF @anioFin    IS NULL SELECT @anioFin    = MAX(YEAR(OrderDate)) FROM Syn_PurchaseOrders;
+
+    -- Validar que los años existan en la base de datos
+    IF NOT EXISTS (SELECT 1 FROM Syn_PurchaseOrders WHERE YEAR(OrderDate) = @anioInicio)
+        THROW 50001, 'El año de inicio no existe en la base de datos.', 1;
+
+    IF NOT EXISTS (SELECT 1 FROM Syn_PurchaseOrders WHERE YEAR(OrderDate) = @anioFin)
+        THROW 50002, 'El año final no existe en la base de datos.', 1;
+
+    IF @anioInicio > @anioFin
+        THROW 50003, 'El año de inicio no puede ser mayor que el año final.', 1;
+
+    WITH TotalPorOrden AS (
+        SELECT
+            PO.PurchaseOrderID,
+            PO.SupplierID,
+            YEAR(PO.OrderDate) AS Anio,
+            SUM(POL.OrderedOuters * POL.ExpectedUnitPricePerOuter) AS TotalOrden
+        FROM Syn_PurchaseOrders PO
+        INNER JOIN Syn_PurchaseOrderLines POL ON POL.PurchaseOrderID = PO.PurchaseOrderID
+        WHERE YEAR(PO.OrderDate) BETWEEN @anioInicio AND @anioFin
+        GROUP BY PO.PurchaseOrderID, PO.SupplierID, YEAR(PO.OrderDate)
+    ),
+    OrdenesPorProveedor AS (
+        SELECT
+            T.Anio,
+            S.SupplierID,
+            S.SupplierName,
+            COUNT(*)          AS CantidadOrdenes,
+            SUM(T.TotalOrden) AS MontoTotal
+        FROM TotalPorOrden T
+        INNER JOIN Syn_Suppliers S ON S.SupplierID = T.SupplierID
+        GROUP BY T.Anio, S.SupplierID, S.SupplierName
+    ),
+    Ranking AS (
+        SELECT
+            Anio,
+            SupplierName,
+            CantidadOrdenes,
+            MontoTotal,
+            DENSE_RANK() OVER (PARTITION BY Anio ORDER BY CantidadOrdenes DESC) AS Posicion
+        FROM OrdenesPorProveedor
+    )
+    SELECT
+        Anio,
+        Posicion,
+        SupplierName AS Proveedor,
+        CantidadOrdenes,
+        MontoTotal
+    FROM Ranking
+    WHERE Posicion <= 5
+    ORDER BY Anio, Posicion, SupplierName;
+END;
+GO
+
+EXEC sp_top5_proveedores_ordenes;            
+EXEC sp_top5_proveedores_ordenes 2014, 2015;  
+EXEC sp_top5_proveedores_ordenes 2015, 2015;  
+
+
+ -- #6
+
+CREATE OR ALTER PROCEDURE sp_matriz_ventas_categoria_anio
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @cols       NVARCHAR(MAX);  
+    DECLARE @colsSelect NVARCHAR(MAX);  
+    DECLARE @sql        NVARCHAR(MAX);
+
+    -- Años en los que realmente hubo ventas
+    SELECT @cols = STUFF((
+        SELECT ',' + QUOTENAME(CAST(Anio AS VARCHAR(4)))
+        FROM (SELECT DISTINCT YEAR(InvoiceDate) AS Anio FROM Syn_Invoices) A
+        ORDER BY Anio
+        FOR XML PATH('')), 1, 1, '');
+
+    SELECT @colsSelect = STUFF((
+        SELECT ',ISNULL(' + QUOTENAME(CAST(Anio AS VARCHAR(4))) + ', 0) AS '
+               + QUOTENAME(CAST(Anio AS VARCHAR(4)))
+        FROM (SELECT DISTINCT YEAR(InvoiceDate) AS Anio FROM Syn_Invoices) A
+        ORDER BY Anio
+        FOR XML PATH('')), 1, 1, '');
+
+    SET @sql = N'
+        SELECT Categoria, ' + @colsSelect + N'
+        FROM (
+            SELECT
+                SG.StockGroupName   AS Categoria,
+                YEAR(I.InvoiceDate) AS Anio,
+                IL.ExtendedPrice    AS Monto
+            FROM Syn_Invoices I
+            INNER JOIN Syn_InvoiceLines IL          ON IL.InvoiceID = I.InvoiceID
+            INNER JOIN Syn_StockItemStockGroups SIG ON SIG.StockItemID = IL.StockItemID
+            INNER JOIN Syn_StockGroups SG           ON SG.StockGroupID = SIG.StockGroupID
+        ) Origen
+        PIVOT (
+            SUM(Monto) FOR Anio IN (' + @cols + N')
+        ) AS Matriz
+        ORDER BY Categoria;';
+
+    EXEC sp_executesql @sql;
+END;
+GO
+
+EXEC sp_matriz_ventas_categoria_anio;
+
+ -- #7
+
+ CREATE OR ALTER PROCEDURE sp_seguimiento_compras_cliente
+    @anio         INT          = NULL,
+    @mes          INT          = NULL,
+    @categoria    VARCHAR(100) = NULL,   -- StockGroup (ej. 'Toys')
+    @subcategoria VARCHAR(100) = NULL    -- tipo de empaque (ej. 'Each')
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Validaciones
+    IF @anio IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM Syn_Invoices WHERE YEAR(InvoiceDate) = @anio)
+        THROW 50001, 'El año indicado no existe en la base de datos.', 1;
+
+    IF @mes IS NOT NULL AND @mes NOT BETWEEN 1 AND 12
+        THROW 50002, 'El mes debe estar entre 1 y 12.', 1;
+
+    WITH Lineas AS (
+        SELECT
+            I.CustomerID,
+            I.InvoiceID,
+            I.InvoiceDate,
+            YEAR(I.InvoiceDate)  AS Anio,
+            MONTH(I.InvoiceDate) AS Mes,
+            IL.Quantity,
+            IL.ExtendedPrice
+        FROM Syn_Invoices I
+        INNER JOIN Syn_InvoiceLines IL ON IL.InvoiceID = I.InvoiceID
+        WHERE (@anio IS NULL OR YEAR(I.InvoiceDate)  = @anio)
+          AND (@mes  IS NULL OR MONTH(I.InvoiceDate) = @mes)
+          AND (@categoria IS NULL OR EXISTS (
+                SELECT 1
+                FROM Syn_StockItemStockGroups SIG
+                INNER JOIN Syn_StockGroups SG ON SG.StockGroupID = SIG.StockGroupID
+                WHERE SIG.StockItemID = IL.StockItemID
+                  AND SG.StockGroupName LIKE '%' + @categoria + '%'))
+          AND (@subcategoria IS NULL OR EXISTS (
+                SELECT 1
+                FROM Syn_StockItems SI
+                INNER JOIN Syn_PackageTypes PT ON PT.PackageTypeID = SI.UnitPackageID
+                WHERE SI.StockItemID = IL.StockItemID
+                  AND PT.PackageTypeName LIKE '%' + @subcategoria + '%'))
+    ),
+    Resumen AS (
+        SELECT
+            CustomerID, Anio, Mes,
+            COUNT(DISTINCT InvoiceID) AS CantidadFacturas,
+            SUM(ExtendedPrice)        AS MontoTotal,
+            SUM(Quantity)             AS CantidadTotal,
+            MIN(Quantity)             AS CantidadMinima,
+            MAX(Quantity)             AS CantidadMaxima
+        FROM Lineas
+        GROUP BY CustomerID, Anio, Mes
+    ),
+    Facturas AS (
+        SELECT
+            CustomerID, Anio, Mes, InvoiceID, InvoiceDate,
+            ROW_NUMBER() OVER (PARTITION BY CustomerID, Anio, Mes
+                               ORDER BY InvoiceDate ASC,  InvoiceID ASC)  AS RnPrimera,
+            ROW_NUMBER() OVER (PARTITION BY CustomerID, Anio, Mes
+                               ORDER BY InvoiceDate DESC, InvoiceID DESC) AS RnUltima
+        FROM (SELECT DISTINCT CustomerID, Anio, Mes, InvoiceID, InvoiceDate FROM Lineas) F
+    )
+    SELECT
+        C.CustomerName      AS Cliente,
+        R.Anio,
+        R.Mes,
+        R.CantidadFacturas,
+        R.MontoTotal,
+        P.InvoiceID         AS PrimeraFactura,
+        P.InvoiceDate       AS FechaPrimera,
+        U.InvoiceID         AS UltimaFactura,
+        U.InvoiceDate       AS FechaUltima,
+        R.CantidadTotal,
+        R.CantidadMinima,
+        R.CantidadMaxima
+    FROM Resumen R
+    INNER JOIN Syn_Customers C ON C.CustomerID = R.CustomerID
+    INNER JOIN Facturas P ON P.CustomerID = R.CustomerID AND P.Anio = R.Anio
+                         AND P.Mes = R.Mes AND P.RnPrimera = 1
+    INNER JOIN Facturas U ON U.CustomerID = R.CustomerID AND U.Anio = R.Anio
+                         AND U.Mes = R.Mes AND U.RnUltima = 1
+    ORDER BY C.CustomerName, R.Anio, R.Mes;
+END;
+GO
+
+EXEC sp_seguimiento_compras_cliente;                                  -- todo
+EXEC sp_seguimiento_compras_cliente 2015;                             -- un año
+EXEC sp_seguimiento_compras_cliente 2015, 3;                          -- año y mes
+EXEC sp_seguimiento_compras_cliente 2015, 3, 'Toys';                  -- con categoría
+EXEC sp_seguimiento_compras_cliente 2015, 3, 'Toys', 'Each';          -- con subcategoría
+
+
+
