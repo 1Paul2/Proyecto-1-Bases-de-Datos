@@ -475,6 +475,169 @@ BEGIN
 END;
 GO
    
+-- #9 
+
+DROP SYNONYM IF EXISTS Syn_StockItemTransactions;
+CREATE SYNONYM Syn_StockItemTransactions FOR Warehouse.StockItemTransactions;
+GO
+
+CREATE OR ALTER PROCEDURE sp_rotacion_inventario
+    @anio      INT          = NULL,
+    @categoria VARCHAR(100) = NULL,  
+    @proveedor VARCHAR(100) = NULL    
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Validar que el año exista en los movimientos de inventario
+    IF @anio IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM Syn_StockItemTransactions
+                       WHERE YEAR(TransactionOccurredWhen) = @anio)
+        THROW 50001, 'El año indicado no existe en la base de datos.', 1;
+
+    -- Última fecha con datos
+    DECLARE @ultima DATE;
+    SELECT @ultima = MAX(CAST(TransactionOccurredWhen AS DATE))
+    FROM Syn_StockItemTransactions;
+
+    WITH Productos AS (
+        SELECT SI.StockItemID, SI.StockItemName, S.SupplierName
+        FROM Syn_StockItems SI
+        INNER JOIN Syn_Suppliers S ON S.SupplierID = SI.SupplierID
+        WHERE (@proveedor IS NULL OR S.SupplierName LIKE '%' + @proveedor + '%')
+          AND (@categoria IS NULL OR EXISTS (
+                SELECT 1
+                FROM Syn_StockItemStockGroups SIG
+                INNER JOIN Syn_StockGroups SG ON SG.StockGroupID = SIG.StockGroupID
+                WHERE SIG.StockItemID = SI.StockItemID
+                  AND SG.StockGroupName LIKE '%' + @categoria + '%'))
+    ),
+    MovimientosAnio AS (
+        SELECT
+            T.StockItemID,
+            YEAR(T.TransactionOccurredWhen) AS Anio,
+            SUM(T.Quantity) AS MovimientoNeto,
+            SUM(CASE WHEN T.CustomerID IS NOT NULL AND T.Quantity < 0
+                     THEN -T.Quantity ELSE 0 END) AS UnidadesVendidas
+        FROM Syn_StockItemTransactions T
+        INNER JOIN Productos P ON P.StockItemID = T.StockItemID
+        GROUP BY T.StockItemID, YEAR(T.TransactionOccurredWhen)
+    ),
+    Inventario AS (
+        SELECT
+            StockItemID, Anio, UnidadesVendidas,
+            -- inventario al cierre del año = suma acumulada de movimientos
+            SUM(MovimientoNeto) OVER (PARTITION BY StockItemID ORDER BY Anio
+                                      ROWS UNBOUNDED PRECEDING) AS InventarioFinal,
+            SUM(MovimientoNeto) OVER (PARTITION BY StockItemID ORDER BY Anio
+                                      ROWS UNBOUNDED PRECEDING) - MovimientoNeto AS InventarioInicial
+        FROM MovimientosAnio
+    ),
+    Calculo AS (
+        SELECT
+            I.StockItemID, I.Anio, I.UnidadesVendidas,
+            I.InventarioInicial, I.InventarioFinal,
+            (I.InventarioInicial + I.InventarioFinal) / 2.0 AS InventarioPromedio,
+            DATEDIFF(DAY, DATEFROMPARTS(I.Anio, 1, 1),
+                     CASE WHEN DATEFROMPARTS(I.Anio, 12, 31) > @ultima
+                          THEN @ultima ELSE DATEFROMPARTS(I.Anio, 12, 31) END) + 1 AS DiasPeriodo
+        FROM Inventario I
+        WHERE @anio IS NULL OR I.Anio = @anio    -- el filtro va después de los acumulados
+    )
+    SELECT
+        P.StockItemName AS Producto,
+        P.SupplierName  AS Proveedor,
+        C.Anio,
+        C.InventarioInicial,
+        C.InventarioFinal,
+        CAST(C.InventarioPromedio AS DECIMAL(18,2)) AS InventarioPromedio,
+        C.UnidadesVendidas,
+        CAST(C.UnidadesVendidas / NULLIF(C.InventarioPromedio, 0) AS DECIMAL(18,2)) AS Rotacion,
+        CAST(C.DiasPeriodo * C.InventarioPromedio
+             / NULLIF(C.UnidadesVendidas, 0) AS DECIMAL(18,2)) AS DiasRotacion
+    FROM Calculo C
+    INNER JOIN Productos P ON P.StockItemID = C.StockItemID
+    ORDER BY P.StockItemName, C.Anio;
+END;
+GO
+-- #10 
+
+CREATE OR ALTER PROCEDURE sp_metodo_envio_favorito
+    @anio INT = NULL,
+    @mes INT = NULL,
+    @catCliente VARCHAR(100) = NULL,   
+    @catProducto VARCHAR(100) = NULL,  
+    @producto VARCHAR(100) = NULL,  
+    @soloFavorito BIT = 1     
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Validaciones
+    IF @anio IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM Syn_Invoices WHERE YEAR(InvoiceDate) = @anio)
+        THROW 50001, 'El año indicado no existe en la base de datos.', 1;
+
+    IF @mes IS NOT NULL AND @mes NOT BETWEEN 1 AND 12
+        THROW 50002, 'El mes debe estar entre 1 y 12.', 1;
+
+    WITH Ventas AS (
+        SELECT
+            I.InvoiceID,
+            I.DeliveryMethodID,
+            C.DeliveryCityID
+        FROM Syn_Invoices I
+        INNER JOIN Syn_Customers C          ON C.CustomerID = I.CustomerID
+        INNER JOIN Syn_CustomerCategories CC ON CC.CustomerCategoryID = C.CustomerCategoryID
+        WHERE (@anio IS NULL OR YEAR(I.InvoiceDate)  = @anio)
+          AND (@mes  IS NULL OR MONTH(I.InvoiceDate) = @mes)
+          AND (@catCliente IS NULL OR CC.CustomerCategoryName LIKE '%' + @catCliente + '%')
+          AND ((@catProducto IS NULL AND @producto IS NULL) OR EXISTS (
+                SELECT 1
+                FROM Syn_InvoiceLines IL
+                INNER JOIN Syn_StockItems SI ON SI.StockItemID = IL.StockItemID
+                WHERE IL.InvoiceID = I.InvoiceID
+                  AND (@producto IS NULL OR SI.StockItemName LIKE '%' + @producto + '%')
+                  AND (@catProducto IS NULL OR EXISTS (
+                        SELECT 1
+                        FROM Syn_StockItemStockGroups SIG
+                        INNER JOIN Syn_StockGroups SG ON SG.StockGroupID = SIG.StockGroupID
+                        WHERE SIG.StockItemID = SI.StockItemID
+                          AND SG.StockGroupName LIKE '%' + @catProducto + '%'))))
+    ),
+    Conteo AS (
+        SELECT
+            DeliveryCityID,
+            DeliveryMethodID,
+            COUNT(*) AS CantidadVentas
+        FROM Ventas
+        GROUP BY DeliveryCityID, DeliveryMethodID
+    ),
+    Ranking AS (
+        SELECT
+            DeliveryCityID,
+            DeliveryMethodID,
+            CantidadVentas,
+            SUM(CantidadVentas) OVER (PARTITION BY DeliveryCityID) AS TotalVentasLugar,
+            DENSE_RANK() OVER (PARTITION BY DeliveryCityID
+                               ORDER BY CantidadVentas DESC) AS Posicion
+        FROM Conteo
+    )
+    SELECT
+        SP.StateProvinceName AS Provincia,
+        CI.CityName AS Ciudad,
+        DM.DeliveryMethodName AS MetodoEnvio,
+        R.CantidadVentas,
+        R.TotalVentasLugar,
+        R.Posicion
+    FROM Ranking R
+    INNER JOIN Syn_Cities CI ON CI.CityID = R.DeliveryCityID
+    INNER JOIN Syn_StateProvinces SP ON SP.StateProvinceID = CI.StateProvinceID
+    INNER JOIN Syn_DeliveryMethods DM ON DM.DeliveryMethodID = R.DeliveryMethodID
+    WHERE @soloFavorito = 0 OR R.Posicion = 1
+    ORDER BY R.CantidadVentas DESC, SP.StateProvinceName, CI.CityName, R.Posicion;
+END;
+GO
 
 
 
