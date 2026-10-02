@@ -2,6 +2,10 @@ import { useState } from 'react';
 import Clientes from './pages/Clientes';
 import Proveedores from './pages/Proveedores';
 import Productos from './pages/Productos';
+import Ventas from './pages/Ventas';
+import Estadisticas from './pages/Estadisticas';
+
+import Paginacion from './components/Paginacion';
 import './App.css';
 
 const modulos = {
@@ -30,7 +34,7 @@ export default function App() {
           <p className='eyebrow'>Wide World Importers</p>
           <h1>Panel de gestion</h1>
         </div>
-        <nav className='menu' arial-label='Modulos'>
+        <nav className="menu" aria-label="Módulos">
           {Object.entries(modulos).map(([key, name]) => (
             <button
               key={key}
@@ -46,7 +50,8 @@ export default function App() {
         {modulo === 'clientes' && <Clientes />}
         {modulo === 'proveedores' && <Proveedores />}
         {modulo === 'productos' && <Productos />}
-        {modulo !== 'clientes' && modulo !== 'proveedores' && modulo !== 'productos' && <Test name={modulos[modulo]} />}
+        {modulo === 'ventas' && <Ventas />}
+        {modulo === 'estadisticas' && <Estadisticas />}
       </main>
     </div>
   )
