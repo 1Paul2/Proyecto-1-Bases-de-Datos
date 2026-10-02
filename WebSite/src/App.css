@@ -1,6 +1,31 @@
 table { border-collapse: collapse; width: 100%; }
 th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
 tbody tr:hover { background: #f0f0f0; }
+.tabla-vacia { padding: 18px; text-align: center; color: #6b7280; }
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 16px 0 24px;
+}
+.paginacion button {
+  border: 1px solid #c7d0dc;
+  border-radius: 6px;
+  padding: 8px 14px;
+  background: white;
+  color: #263238;
+  cursor: pointer;
+}
+.paginacion button:hover:not(:disabled) {
+  border-color: #356859;
+  background: #356859;
+  color: white;
+}
+.paginacion button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 .filtros { display: flex; gap: 1rem; margin: 1rem 0; }
 .filtros label { display: flex; flex-direction: column; font-size: 0.9rem; }
 .fondo { position: fixed; inset: 0; background: rgba(0,0,0,.5);

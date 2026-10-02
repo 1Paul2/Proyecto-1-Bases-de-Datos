@@ -6,13 +6,13 @@ export default function Paginacion({
 }) {
   const totalPaginas = Math.ceil(total / porPagina);
 
-  if (totalPaginas <= 1) return null;
+  if (total === 0) return null;
 
   return (
     <div className="paginacion">
       <button
         type="button"
-        disabled={pagina === 1}
+        disabled={pagina <= 1}
         onClick={() => onCambio(pagina - 1)}
       >
         Anterior
@@ -24,7 +24,7 @@ export default function Paginacion({
 
       <button
         type="button"
-        disabled={pagina === totalPaginas}
+        disabled={pagina >= totalPaginas}
         onClick={() => onCambio(pagina + 1)}
       >
         Siguiente

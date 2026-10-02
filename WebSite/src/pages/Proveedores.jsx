@@ -3,6 +3,9 @@ import { pedir } from '../Api';
 import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
 import Detalle from '../components/Detalle';
+import Paginacion from '../components/Paginacion';
+
+const POR_PAGINA = 10;
 
 const columnas = [
   { clave: 'SupplierName', titulo: 'Proveedor' },
@@ -19,6 +22,7 @@ export default function Proveedores() {
   const [filtros, setFiltros] = useState(filtrosIniciales);
   const [categorias, setCategorias] = useState([]);
   const [proveedores, setProveedores] = useState([]);
+  const [pagina, setPagina] = useState(1);
   const [detalle, setDetalle] = useState(null);
   const [error, setError] = useState('');
 
@@ -43,6 +47,7 @@ export default function Proveedores() {
   }, [filtros]);
 
   const cambiarFiltro = (nombre, valor) => {
+    setPagina(1);
     setFiltros(anterior => ({
       ...anterior,
       [nombre]: valor
@@ -50,6 +55,7 @@ export default function Proveedores() {
   };
 
   const restaurarFiltros = () => {
+    setPagina(1);
     setFiltros(filtrosIniciales);
   };
 
@@ -77,6 +83,8 @@ export default function Proveedores() {
       }))
     }
   ];
+  const inicio = (pagina - 1) * POR_PAGINA;
+  const proveedoresVisibles = proveedores.slice(inicio, inicio + POR_PAGINA);
 
   return (
     <section>
@@ -100,8 +108,14 @@ export default function Proveedores() {
 
       <Tabla
         columnas={columnas}
-        filas={proveedores}
+        filas={proveedoresVisibles}
         onFila={verDetalle}
+      />
+      <Paginacion
+        total={proveedores.length}
+        pagina={pagina}
+        porPagina={POR_PAGINA}
+        onCambio={setPagina}
       />
 
       <Detalle

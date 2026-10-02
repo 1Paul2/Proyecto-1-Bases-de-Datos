@@ -5,7 +5,6 @@ import Productos from './pages/Productos';
 import Ventas from './pages/Ventas';
 import Estadisticas from './pages/Estadisticas';
 
-import Paginacion from './components/Paginacion';
 import './App.css';
 
 const modulos = {
@@ -14,15 +13,6 @@ const modulos = {
   productos: "Productos",
   ventas: "Ventas",
   estadisticas: "Estadísticas",
-}
-
-function Test({name}) {
-  return (
-    <section className='pendiente'>
-      <h1>Modulo {name}</h1>
-      <p>funciona</p>
-    </section>
-  )
 }
 
 export default function App() {

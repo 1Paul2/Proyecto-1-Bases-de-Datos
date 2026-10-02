@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { pedir } from '../Api';
 import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
-import Detalle from '../components/Detalle';
+import Paginacion from '../components/Paginacion';
+
+const POR_PAGINA = 10;
 
 const columnas = [
   { clave: 'InvoiceID', titulo: 'Factura' },
@@ -23,6 +25,7 @@ const filtrosIniciales = {
 export default function Ventas() {
   const [filtros, setFiltros] = useState(filtrosIniciales);
   const [ventas, setVentas] = useState([]);
+  const [pagina, setPagina] = useState(1);
   const [detalle, setDetalle] = useState(null);
   const [error, setError] = useState('');
 
@@ -44,6 +47,7 @@ export default function Ventas() {
   }, [filtros]);
 
   const cambiarFiltro = (nombre, valor) => {
+    setPagina(1);
     setFiltros(anterior => ({
       ...anterior,
       [nombre]: valor
@@ -51,6 +55,7 @@ export default function Ventas() {
   };
 
   const restaurarFiltros = () => {
+    setPagina(1);
     setFiltros(filtrosIniciales);
   };
 
@@ -90,6 +95,8 @@ export default function Ventas() {
       tipo: 'number'
     }
   ];
+  const inicio = (pagina - 1) * POR_PAGINA;
+  const ventasVisibles = ventas.slice(inicio, inicio + POR_PAGINA);
 
   return (
     <section>
@@ -113,8 +120,14 @@ export default function Ventas() {
 
       <Tabla
         columnas={columnas}
-        filas={ventas}
+        filas={ventasVisibles}
         onFila={verDetalle}
+      />
+      <Paginacion
+        total={ventas.length}
+        pagina={pagina}
+        porPagina={POR_PAGINA}
+        onCambio={setPagina}
       />
 
       {detalle && (

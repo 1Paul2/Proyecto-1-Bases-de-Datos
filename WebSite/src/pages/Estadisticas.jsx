@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { pedir } from '../Api';
 import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
+import Paginacion from '../components/Paginacion';
 
 const reportes = {
   proveedor: {
@@ -106,6 +107,8 @@ const filtrosIniciales = {
   anio: ''
 };
 
+const POR_PAGINA = 10;
+
 function tituloColumna(clave) {
   return clave
     .replaceAll('_', ' ')
@@ -113,6 +116,7 @@ function tituloColumna(clave) {
 }
 
 export default function Estadisticas() {
+  const [pagina, setPagina] = useState(1);
   const [reporte, setReporte] = useState('proveedor');
   const [filtros, setFiltros] = useState(filtrosIniciales);
   const [filas, setFilas] = useState([]);
@@ -146,6 +150,7 @@ export default function Estadisticas() {
     setReporte(evento.target.value);
     setFiltros(filtrosIniciales);
     setFilas([]);
+    setPagina(1);
   };
 
   const cambiarFiltro = (nombre, valor) => {
@@ -153,10 +158,12 @@ export default function Estadisticas() {
       ...anterior,
       [nombre]: valor
     }));
+    setPagina(1);
   };
 
   const restaurarFiltros = () => {
     setFiltros(filtrosIniciales);
+    setPagina(1);
   };
 
   const columnas = filas.length > 0
@@ -165,6 +172,9 @@ export default function Estadisticas() {
         titulo: tituloColumna(clave)
       }))
     : [];
+
+  const inicio = (pagina - 1) * POR_PAGINA;
+  const filasVisibles = filas.slice(inicio, inicio + POR_PAGINA);
 
   return (
     <section>
@@ -197,7 +207,14 @@ export default function Estadisticas() {
 
       <p>{filas.length} resultados</p>
 
-      <Tabla columnas={columnas} filas={filas} />
+      <Tabla columnas={columnas} filas={filasVisibles} />
+
+      <Paginacion
+        total={filas.length}
+        pagina={pagina}
+        porPagina={POR_PAGINA}
+        onCambio={setPagina}
+      />
     </section>
   );
 }
