@@ -1,0 +1,71 @@
+CREATE OR ALTER PROCEDURE SP_InsertSupplier
+    @SupplierReference NVARCHAR(20),
+    @SupplierName NVARCHAR(100),
+    @SupplierCategoryID INT,
+    @PrimaryContactPersonID INT,
+    @AlternateContactPersonID INT = NULL,
+    @DeliveryMethodID INT,
+    @DeliveryCityID INT,
+    @DeliveryPostalCode NVARCHAR(10),
+    @PhoneNumber NVARCHAR(20),
+    @FaxNumber NVARCHAR(20) = NULL,
+    @WebsiteURL NVARCHAR(255) = NULL,
+    @DeliveryAddressLine1 NVARCHAR(60),
+    @DeliveryAddressLine2 NVARCHAR(60) = NULL,
+    @PostalAddressLine1 NVARCHAR(60),
+    @PostalAddressLine2 NVARCHAR(60) = NULL,
+    @DeliveryLatitude DECIMAL(9, 6) = NULL,
+    @DeliveryLongitude DECIMAL(9, 6) = NULL,
+    @BankAccountBranch NVARCHAR(20),
+    @BankAccountName NVARCHAR(100),
+    @BankAccountNumber NVARCHAR(20),
+    @PaymentDays INT
+AS
+BEGIN
+    INSERT INTO Syn_Suppliers (
+        SupplierReference,
+        SupplierName,
+        SupplierCategoryID,
+        PrimaryContactPersonID,
+        AlternateContactPersonID,
+        DeliveryMethodID,
+        DeliveryCityID,
+        DeliveryPostalCode,
+        PhoneNumber,
+        FaxNumber,
+        WebsiteURL,
+        DeliveryAddressLine1,
+        DeliveryAddressLine2,
+        PostalAddressLine1,
+        PostalAddressLine2,
+        DeliveryLocation,
+        BankAccountBranch,
+        BankAccountName,
+        BankAccountNumber,
+        PaymentDays
+    )
+    VALUES (
+        @SupplierReference,
+        @SupplierName,
+        @SupplierCategoryID,
+        @PrimaryContactPersonID,
+        @AlternateContactPersonID,
+        @DeliveryMethodID,
+        @DeliveryCityID,
+        @DeliveryPostalCode,
+        @PhoneNumber,
+        @FaxNumber,
+        @WebsiteURL,
+        @DeliveryAddressLine1,
+        @DeliveryAddressLine2,
+        @PostalAddressLine1,
+        @PostalAddressLine2,
+        GEOGRAPHY::Point(@DeliveryLatitude, @DeliveryLongitude, 4326),
+        @BankAccountBranch,
+        @BankAccountName,
+        @BankAccountNumber,
+        @PaymentDays
+    );
+    SELECT SCOPE_IDENTITY() AS NewSupplierID;
+END;
+GO
