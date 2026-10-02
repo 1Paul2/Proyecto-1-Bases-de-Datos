@@ -1,4 +1,4 @@
-use WideWorldImporters;
+USE WideWorldImporters;
 GO
 CREATE OR ALTER PROCEDURE SP_InsertSale
     @CustomerID INT,
@@ -15,9 +15,22 @@ BEGIN
 
     BEGIN TRY
         BEGIN TRANSACTION;
-        INSERT INTO Syn_Invoices (CustomerID, DeliveryMethodID, CustomerPurchaseOrderNumber, ContactPersonID, SalespersonPersonID, InvoiceDate, DeliveryInstructions)
-        VALUES (@CustomerID, @DeliveryMethodID, @CustomerPurchaseOrderNumber, @ContactPersonID, @SalespersonPersonID, @InvoiceDate, @DeliveryInstructions);
-        SELECT SCOPE_IDENTITY() AS NewInvoiceID;
+        -- Harto ya de SQL
+        DECLARE @BillToCustomerID INT;
+        SELECT @BillToCustomerID = BillToCustomerID
+        FROM Syn_Customers
+        WHERE CustomerID = @CustomerID;
+
+        IF @BillToCustomerID IS NULL
+            SET @BillToCustomerID = @CustomerID;
+
+        DECLARE @NewInvoiceID INT = NEXT VALUE FOR Sequences.InvoiceID;
+        INSERT INTO Syn_Invoices (InvoiceID,CustomerID,BillToCustomerID,DeliveryMethodID,ContactPersonID,AccountsPersonID,SalespersonPersonID,PackedByPersonID,InvoiceDate,CustomerPurchaseOrderNumber,IsCreditNote,DeliveryInstructions,TotalDryItems,TotalChillerItems,LastEditedBy
+        )
+        VALUES (@NewInvoiceID,@CustomerID,@BillToCustomerID,@DeliveryMethodID,@ContactPersonID,@ContactPersonID,@SalespersonPersonID,@SalespersonPersonID,@InvoiceDate,@CustomerPurchaseOrderNumber,0,@DeliveryInstructions,0,0,@SalespersonPersonID
+        );
+
+        SELECT @NewInvoiceID AS NewInvoiceID;
         COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH

@@ -38,9 +38,12 @@ BEGIN
         C.CustomerName as CustomerName,
         C.CustomerID as CustomerID,
         D.DeliveryMethodName as DeliveryMethod,
+        I.DeliveryMethodID as DeliveryMethodID,
         I.CustomerPurchaseOrderNumber as CustomerPurchaseOrderNumber,
         P.FullName as ContactPerson,
+        I.ContactPersonID as ContactPersonID,
         P2.FullName as Salesperson,
+        I.SalespersonPersonID as SalespersonPersonID,
         I.InvoiceDate as InvoiceDate,
         I.DeliveryInstructions as DeliveryInstructions
     FROM Syn_Invoices I

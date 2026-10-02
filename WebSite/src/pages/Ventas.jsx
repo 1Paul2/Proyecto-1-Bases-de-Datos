@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { pedir } from '../Api';
+import { enviar, pedir } from '../Api';
 import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
 import Paginacion from '../components/Paginacion';
@@ -22,12 +22,37 @@ const filtrosIniciales = {
   max: ''
 };
 
+const formularioInicial = {
+  CustomerID: '',
+  DeliveryMethodID: '',
+  CustomerPurchaseOrderNumber: '',
+  ContactPersonID: '',
+  SalespersonPersonID: '',
+  InvoiceDate: new Date().toISOString().slice(0, 10),
+  DeliveryInstructions: ''
+};
+
+const ETIQUETAS_ENCABEZADO = {
+  InvoiceID: 'Número de factura',
+  CustomerName: 'Cliente',
+  DeliveryMethod: 'Método de entrega',
+  CustomerPurchaseOrderNumber: 'Número de orden de compra',
+  ContactPerson: 'Persona de contacto',
+  Salesperson: 'Nombre del vendedor',
+  InvoiceDate: 'Fecha de la factura',
+  DeliveryInstructions: 'Instrucciones de entrega'
+};
+
 export default function Ventas() {
   const [filtros, setFiltros] = useState(filtrosIniciales);
   const [ventas, setVentas] = useState([]);
   const [pagina, setPagina] = useState(1);
   const [detalle, setDetalle] = useState(null);
   const [error, setError] = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [formulario, setFormulario] = useState(formularioInicial);
+  const [modoFormulario, setModoFormulario] = useState(null);
+  const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -59,10 +84,102 @@ export default function Ventas() {
     setFiltros(filtrosIniciales);
   };
 
+  const recargar = async () => {
+    const params = new URLSearchParams();
+    if (filtros.cliente) params.append('cliente', filtros.cliente);
+    if (filtros.desde) params.append('desde', filtros.desde);
+    if (filtros.hasta) params.append('hasta', filtros.hasta);
+    if (filtros.min) params.append('min', filtros.min);
+    if (filtros.max) params.append('max', filtros.max);
+
+    const res = await pedir(`/ventas?${params}`);
+    setVentas(res.data);
+  };
+
   const verDetalle = async fila => {
     try {
       const res = await pedir(`/ventas/${fila.InvoiceID}`);
       setDetalle(res);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const abrirNuevo = () => {
+    setError('');
+    setMensaje('');
+    setFormulario(formularioInicial);
+    setModoFormulario('nuevo');
+  };
+
+  const abrirEdicion = async fila => {
+    try {
+      const res = await pedir(`/ventas/${fila.InvoiceID}`);
+      const datos = res.encabezado;
+      setError('');
+      setMensaje('');
+      setFormulario({
+        InvoiceID: datos.InvoiceID,
+        CustomerID: datos.CustomerID ?? '',
+        DeliveryMethodID: datos.DeliveryMethodID ?? '',
+        CustomerPurchaseOrderNumber: datos.CustomerPurchaseOrderNumber ?? '',
+        ContactPersonID: datos.ContactPersonID ?? '',
+        SalespersonPersonID: datos.SalespersonPersonID ?? '',
+        InvoiceDate: datos.InvoiceDate ? String(datos.InvoiceDate).slice(0, 10) : '',
+        DeliveryInstructions: datos.DeliveryInstructions ?? ''
+      });
+      setModoFormulario('editar');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const cambiarFormulario = evento => {
+    const { name, value } = evento.target;
+    setFormulario(anterior => ({ ...anterior, [name]: value }));
+  };
+
+  const guardar = async evento => {
+    evento.preventDefault();
+    setGuardando(true);
+    setError('');
+    setMensaje('');
+
+    try {
+      const datos = {
+        CustomerID: Number(formulario.CustomerID),
+        DeliveryMethodID: Number(formulario.DeliveryMethodID),
+        CustomerPurchaseOrderNumber: formulario.CustomerPurchaseOrderNumber.trim(),
+        ContactPersonID: Number(formulario.ContactPersonID),
+        SalespersonPersonID: Number(formulario.SalespersonPersonID),
+        InvoiceDate: formulario.InvoiceDate,
+        DeliveryInstructions: formulario.DeliveryInstructions.trim()
+      };
+
+      if (modoFormulario === 'nuevo') {
+        await enviar('/ventas', 'POST', datos);
+        setMensaje('Venta creada correctamente.');
+      } else {
+        await enviar(`/ventas/${formulario.InvoiceID}`, 'PUT', datos);
+        setMensaje('Venta actualizada correctamente.');
+      }
+
+      setModoFormulario(null);
+      setPagina(1);
+      await recargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const eliminar = async fila => {
+    if (!window.confirm(`¿Eliminar la venta con factura #${fila.InvoiceID}?`)) return;
+    try {
+      await enviar(`/ventas/${fila.InvoiceID}`, 'DELETE');
+      setMensaje('Venta eliminada correctamente.');
+      setVentas(actuales => actuales.filter(item => item.InvoiceID !== fila.InvoiceID));
     } catch (err) {
       setError(err.message);
     }
@@ -95,12 +212,21 @@ export default function Ventas() {
       tipo: 'number'
     }
   ];
+
   const inicio = (pagina - 1) * POR_PAGINA;
-  const ventasVisibles = ventas.slice(inicio, inicio + POR_PAGINA);
+  const ventasVisibles = ventas.slice(inicio, inicio + POR_PAGINA).map(v => ({
+    ...v,
+    InvoiceDate: v.InvoiceDate ? String(v.InvoiceDate).slice(0, 10) : ''
+  }));
 
   return (
     <section>
-      <h1>Ventas</h1>
+      <div className="encabezado-modulo">
+        <h1>Ventas</h1>
+        <button type="button" onClick={abrirNuevo}>
+          Nueva venta
+        </button>
+      </div>
 
       <div className="barra-filtros">
         <Filtros
@@ -115,6 +241,7 @@ export default function Ventas() {
       </div>
 
       {error && <p className="mensaje-error">{error}</p>}
+      {mensaje && <p className="mensaje-exito">{mensaje}</p>}
 
       <p>{ventas.length} resultados</p>
 
@@ -122,7 +249,30 @@ export default function Ventas() {
         columnas={columnas}
         filas={ventasVisibles}
         onFila={verDetalle}
+        acciones={fila => (
+          <div className="acciones-fila">
+            <button
+              type="button"
+              onClick={evento => {
+                evento.stopPropagation();
+                abrirEdicion(fila);
+              }}
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              onClick={evento => {
+                evento.stopPropagation();
+                eliminar(fila);
+              }}
+            >
+              Eliminar
+            </button>
+          </div>
+        )}
       />
+
       <Paginacion
         total={ventas.length}
         pagina={pagina}
@@ -140,12 +290,18 @@ export default function Ventas() {
             <h2>Encabezado de factura</h2>
 
             <dl>
-              {Object.entries(detalle.encabezado).map(([clave, valor]) => (
-                <div key={clave}>
-                  <dt>{clave.replaceAll('_', ' ')}</dt>
-                  <dd>{valor ?? '—'}</dd>
-                </div>
-              ))}
+              {Object.entries(detalle.encabezado)
+                .filter(([clave]) => !['CustomerID', 'DeliveryMethodID', 'ContactPersonID', 'SalespersonPersonID'].includes(clave))
+                .map(([clave, valor]) => (
+                  <div key={clave}>
+                    <dt>{ETIQUETAS_ENCABEZADO[clave] || clave.replaceAll('_', ' ')}</dt>
+                    <dd>
+                      {clave === 'InvoiceDate' && valor
+                        ? String(valor).slice(0, 10)
+                        : (valor ?? '—')}
+                    </dd>
+                  </div>
+                ))}
             </dl>
 
             <h2>Detalle de factura</h2>
@@ -159,9 +315,111 @@ export default function Ventas() {
                 { clave: 'TaxAmount', titulo: 'Monto impuesto' },
                 { clave: 'ExtendedPrice', titulo: 'Total línea' }
               ]}
-              filas={detalle.lineas}
+              filas={detalle.lineas || []}
             />
           </div>
+        </div>
+      )}
+
+      {modoFormulario && (
+        <div className="fondo" onClick={() => setModoFormulario(null)}>
+          <form
+            className="ventana formulario"
+            onSubmit={guardar}
+            onClick={evento => evento.stopPropagation()}
+          >
+            <button type="button" onClick={() => setModoFormulario(null)}>
+              Cerrar
+            </button>
+
+            <h2>{modoFormulario === 'nuevo' ? 'Nueva venta' : 'Editar venta'}</h2>
+
+            <label>
+              ID de cliente
+              <input
+                name="CustomerID"
+                type="number"
+                min="1"
+                value={formulario.CustomerID}
+                onChange={cambiarFormulario}
+                required
+              />
+            </label>
+
+            <label>
+              ID de método de entrega
+              <input
+                name="DeliveryMethodID"
+                type="number"
+                min="1"
+                value={formulario.DeliveryMethodID}
+                onChange={cambiarFormulario}
+                required
+              />
+            </label>
+
+            <label>
+              Número de orden de compra
+              <input
+                name="CustomerPurchaseOrderNumber"
+                maxLength={20}
+                value={formulario.CustomerPurchaseOrderNumber}
+                onChange={cambiarFormulario}
+                required
+              />
+            </label>
+
+            <label>
+              ID persona de contacto
+              <input
+                name="ContactPersonID"
+                type="number"
+                min="1"
+                value={formulario.ContactPersonID}
+                onChange={cambiarFormulario}
+                required
+              />
+            </label>
+
+            <label>
+              ID vendedor
+              <input
+                name="SalespersonPersonID"
+                type="number"
+                min="1"
+                value={formulario.SalespersonPersonID}
+                onChange={cambiarFormulario}
+                required
+              />
+            </label>
+
+            <label>
+              Fecha de factura
+              <input
+                name="InvoiceDate"
+                type="date"
+                value={formulario.InvoiceDate}
+                onChange={cambiarFormulario}
+                required
+              />
+            </label>
+
+            <label>
+              Instrucciones de entrega
+              <textarea
+                name="DeliveryInstructions"
+                maxLength={500}
+                rows={3}
+                value={formulario.DeliveryInstructions}
+                onChange={cambiarFormulario}
+                required
+              />
+            </label>
+
+            <button type="submit" disabled={guardando}>
+              {guardando ? 'Guardando...' : 'Guardar'}
+            </button>
+          </form>
         </div>
       )}
     </section>
