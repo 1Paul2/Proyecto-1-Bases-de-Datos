@@ -8,18 +8,25 @@ CREATE OR ALTER PROCEDURE SP_InsertCustomer
     @AlternateContactPersonID INT = NULL,
     @BillToCustomerID INT = NULL,
     @DeliveryMethodID INT,
-    @DeliveryCityID INT = NULL,
-    @PostalPostalCode NVARCHAR(20) = NULL,
-    @PhoneNumber NVARCHAR(20) = NULL,
-    @FaxNumber NVARCHAR(20) = NULL,
+    @DeliveryCityID INT,
+    @PostalCityID INT,
+    @DeliveryPostalCode NVARCHAR(10),
+    @PostalPostalCode NVARCHAR(20),
+    @PhoneNumber NVARCHAR(20),
+    @FaxNumber NVARCHAR(20),
     @PaymentDays INT,
-    @WebsiteURL NVARCHAR(100) = NULL,
-    @DeliveryAddressLine1 NVARCHAR(60) = NULL,
+    @StandardDiscountPercentage DECIMAL(18, 3),
+    @IsStatementSent BIT,
+    @IsOnCreditHold BIT,
+    @WebsiteURL NVARCHAR(100),
+    @DeliveryAddressLine1 NVARCHAR(60),
     @DeliveryAddressLine2 NVARCHAR(60) = NULL,
-    @PostalAddressLine1 NVARCHAR(60) = NULL,
+    @PostalAddressLine1 NVARCHAR(60),
     @PostalAddressLine2 NVARCHAR(60) = NULL,
+    @AccountOpenedDate DATE,
     @DeliveryLatitude DECIMAL(9, 6) = NULL,
-    @DeliveryLongitude DECIMAL(9, 6) = NULL
+    @DeliveryLongitude DECIMAL(9, 6) = NULL,
+    @LastEditedBy INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -32,8 +39,8 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        INSERT INTO Syn_Customers (CustomerName, CustomerCategoryID, BuyingGroupID, PrimaryContactPersonID, AlternateContactPersonID, BillToCustomerID, DeliveryMethodID, DeliveryCityID, PostalPostalCode, PhoneNumber, FaxNumber, PaymentDays, WebsiteURL, DeliveryAddressLine1, DeliveryAddressLine2, PostalAddressLine1, PostalAddressLine2, DeliveryLocation)
-        VALUES (@CustomerName, @CustomerCategoryID, @BuyingGroupID, @PrimaryContactPersonID, @AlternateContactPersonID, @BillToCustomerID, @DeliveryMethodID, @DeliveryCityID, @PostalPostalCode, @PhoneNumber, @FaxNumber, @PaymentDays, @WebsiteURL, @DeliveryAddressLine1, @DeliveryAddressLine2, @PostalAddressLine1, @PostalAddressLine2, CASE WHEN @DeliveryLatitude IS NULL AND @DeliveryLongitude IS NULL THEN NULL ELSE GEOGRAPHY::Point(@DeliveryLatitude, @DeliveryLongitude, 4326) END);
+        INSERT INTO Syn_Customers (CustomerName, CustomerCategoryID, BuyingGroupID, PrimaryContactPersonID, AlternateContactPersonID, BillToCustomerID, DeliveryMethodID, DeliveryCityID, PostalCityID, DeliveryPostalCode, PostalPostalCode, PhoneNumber, FaxNumber, PaymentDays, StandardDiscountPercentage, IsStatementSent, IsOnCreditHold, WebsiteURL, DeliveryAddressLine1, DeliveryAddressLine2, PostalAddressLine1, PostalAddressLine2, AccountOpenedDate, DeliveryLocation, LastEditedBy)
+        VALUES (@CustomerName, @CustomerCategoryID, @BuyingGroupID, @PrimaryContactPersonID, @AlternateContactPersonID, @BillToCustomerID, @DeliveryMethodID, @DeliveryCityID, @PostalCityID, @DeliveryPostalCode, @PostalPostalCode, @PhoneNumber, @FaxNumber, @PaymentDays, @StandardDiscountPercentage, @IsStatementSent, @IsOnCreditHold, @WebsiteURL, @DeliveryAddressLine1, @DeliveryAddressLine2, @PostalAddressLine1, @PostalAddressLine2, @AccountOpenedDate, CASE WHEN @DeliveryLatitude IS NULL AND @DeliveryLongitude IS NULL THEN NULL ELSE GEOGRAPHY::Point(@DeliveryLatitude, @DeliveryLongitude, 4326) END, COALESCE(@LastEditedBy, @PrimaryContactPersonID));
 
         SELECT SCOPE_IDENTITY() AS NewCustomerID;
         COMMIT TRANSACTION;

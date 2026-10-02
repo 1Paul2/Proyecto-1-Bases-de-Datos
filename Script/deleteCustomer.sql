@@ -20,6 +20,10 @@ BEGIN
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+        IF ERROR_NUMBER() = 547
+            THROW 50002, 'No se puede eliminar el cliente porque tiene transacciones o registros relacionados.', 1;
+
         THROW;
     END CATCH;
 END;

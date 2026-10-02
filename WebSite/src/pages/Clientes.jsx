@@ -18,10 +18,11 @@ const campos = [{ nombre: 'apodo', etiqueta: 'Nombre' }];
 const formularioInicial = {
   CustomerName: '', CustomerCategoryID: '', PrimaryContactPersonID: '',
   AlternateContactPersonID: '', BillToCustomerID: '', BuyingGroupID: '',
-  DeliveryMethodID: '', DeliveryCityID: '', PostalPostalCode: '',
-  PhoneNumber: '', FaxNumber: '', PaymentDays: 30, WebsiteURL: '',
+  DeliveryMethodID: '', DeliveryCityID: '', PostalCityID: '', DeliveryPostalCode: '', PostalPostalCode: '',
+  PhoneNumber: '', FaxNumber: '', PaymentDays: 30, StandardDiscountPercentage: 0, IsStatementSent: false, IsOnCreditHold: false, WebsiteURL: '',
   DeliveryAddressLine1: '', DeliveryAddressLine2: '', PostalAddressLine1: '',
-  PostalAddressLine2: '', DeliveryLatitude: '', DeliveryLongitude: ''
+  PostalAddressLine2: '', AccountOpenedDate: new Date().toISOString().slice(0, 10),
+  DeliveryLatitude: '', DeliveryLongitude: ''
 };
 
 export default function Clientes() {
@@ -69,15 +70,21 @@ export default function Clientes() {
         BuyingGroupID: datos.BuyingGroupID ?? '',
         DeliveryMethodID: datos.DeliveryMethodID ?? '',
         DeliveryCityID: datos.DeliveryCityID ?? '',
+        PostalCityID: datos.PostalCityID ?? '',
+        DeliveryPostalCode: datos.DeliveryPostalCode ?? '',
         PostalPostalCode: datos.PostalPostalCode ?? '',
         PhoneNumber: datos.PhoneNumber ?? '',
         FaxNumber: datos.FaxNumber ?? '',
         PaymentDays: datos.PaymentDays ?? 30,
+        StandardDiscountPercentage: datos.StandardDiscountPercentage ?? 0,
+        IsStatementSent: datos.IsStatementSent ?? false,
+        IsOnCreditHold: datos.IsOnCreditHold ?? false,
         WebsiteURL: datos.WebsiteURL ?? '',
         DeliveryAddressLine1: datos.DeliveryAddressLine1 ?? '',
         DeliveryAddressLine2: datos.DeliveryAddressLine2 ?? '',
         PostalAddressLine1: datos.PostalAddressLine1 ?? '',
         PostalAddressLine2: datos.PostalAddressLine2 ?? '',
+        AccountOpenedDate: datos.AccountOpenedDate ?? '',
         DeliveryLatitude: datos.DeliveryLatitude ?? '',
         DeliveryLongitude: datos.DeliveryLongitude ?? ''
       });
@@ -198,9 +205,26 @@ export default function Clientes() {
             <label>Contacto primario<input name="PrimaryContactPersonID" type="number" value={formulario.PrimaryContactPersonID} onChange={cambiarFormulario} required /></label>
             <label>Contacto alternativo<input name="AlternateContactPersonID" type="number" value={formulario.AlternateContactPersonID} onChange={cambiarFormulario} /></label>
             <label>Método de entrega<input name="DeliveryMethodID" type="number" value={formulario.DeliveryMethodID} onChange={cambiarFormulario} required /></label>
+            <label>Grupo de compra<input name="BuyingGroupID" type="number" value={formulario.BuyingGroupID} onChange={cambiarFormulario} /></label>
+            <label>Cliente por facturar<input name="BillToCustomerID" type="number" value={formulario.BillToCustomerID} onChange={cambiarFormulario} required /></label>
+            <label>Ciudad de entrega<input name="DeliveryCityID" type="number" value={formulario.DeliveryCityID} onChange={cambiarFormulario} required /></label>
+            <label>Ciudad postal<input name="PostalCityID" type="number" value={formulario.PostalCityID} onChange={cambiarFormulario} required /></label>
+            <label>Código postal de entrega<input name="DeliveryPostalCode" value={formulario.DeliveryPostalCode} onChange={cambiarFormulario} required /></label>
+            <label>Código postal<input name="PostalPostalCode" value={formulario.PostalPostalCode} onChange={cambiarFormulario} required /></label>
             <label>Días de pago<input name="PaymentDays" type="number" min="0" value={formulario.PaymentDays} onChange={cambiarFormulario} required /></label>
-            <label>Teléfono<input name="PhoneNumber" value={formulario.PhoneNumber} onChange={cambiarFormulario} /></label>
-            <label>Sitio web<input name="WebsiteURL" type="url" value={formulario.WebsiteURL} onChange={cambiarFormulario} /></label>
+            <label>Descuento estándar (%)<input name="StandardDiscountPercentage" type="number" min="0" step="0.001" value={formulario.StandardDiscountPercentage} onChange={cambiarFormulario} required /></label>
+            <label><span>Enviar estado de cuenta</span><input name="IsStatementSent" type="checkbox" checked={formulario.IsStatementSent} onChange={evento => setFormulario(anterior => ({ ...anterior, IsStatementSent: evento.target.checked }))} /></label>
+            <label><span>Cliente en retención de crédito</span><input name="IsOnCreditHold" type="checkbox" checked={formulario.IsOnCreditHold} onChange={evento => setFormulario(anterior => ({ ...anterior, IsOnCreditHold: evento.target.checked }))} /></label>
+            <label>Teléfono<input name="PhoneNumber" value={formulario.PhoneNumber} onChange={cambiarFormulario} required /></label>
+            <label>Fax<input name="FaxNumber" value={formulario.FaxNumber} onChange={cambiarFormulario} required /></label>
+            <label>Sitio web<input name="WebsiteURL" type="url" value={formulario.WebsiteURL} onChange={cambiarFormulario} required /></label>
+            <label>Dirección de entrega<input name="DeliveryAddressLine1" value={formulario.DeliveryAddressLine1} onChange={cambiarFormulario} required /></label>
+            <label>Dirección de entrega adicional<input name="DeliveryAddressLine2" value={formulario.DeliveryAddressLine2} onChange={cambiarFormulario} /></label>
+            <label>Dirección postal<input name="PostalAddressLine1" value={formulario.PostalAddressLine1} onChange={cambiarFormulario} required /></label>
+            <label>Dirección postal adicional<input name="PostalAddressLine2" value={formulario.PostalAddressLine2} onChange={cambiarFormulario} /></label>
+            <label>Fecha de apertura<input name="AccountOpenedDate" type="date" value={formulario.AccountOpenedDate} onChange={cambiarFormulario} required /></label>
+            <label>Latitud<input name="DeliveryLatitude" type="number" step="0.000001" value={formulario.DeliveryLatitude} onChange={cambiarFormulario} /></label>
+            <label>Longitud<input name="DeliveryLongitude" type="number" step="0.000001" value={formulario.DeliveryLongitude} onChange={cambiarFormulario} /></label>
 
             <button type="submit" disabled={guardando}>
               {guardando ? 'Guardando...' : 'Guardar'}
