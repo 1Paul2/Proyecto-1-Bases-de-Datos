@@ -69,3 +69,68 @@ BEGIN
     ORDER BY SI.StockItemName ASC;
 END;
 GO
+
+CREATE OR ALTER PROCEDURE SP_DeleteSale
+    @InvoiceID INT
+AS
+BEGIN
+    DELETE FROM Syn_InvoiceLines WHERE InvoiceID = @InvoiceID;
+    DELETE FROM Syn_Invoices WHERE InvoiceID = @InvoiceID;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE SP_GetAllSales
+AS
+BEGIN
+    SELECT I.InvoiceID as InvoiceID,
+        I.InvoiceDate as InvoiceDate,
+        C.CustomerName as CustomerName,
+        D.DeliveryMethodName as DeliveryMethod,
+        SUM(IL.ExtendedPrice) as TotalAmount
+    FROM Syn_Invoices I
+    INNER JOIN Syn_Customers C ON I.CustomerID = C.CustomerID
+    INNER JOIN Syn_DeliveryMethods D ON I.DeliveryMethodID = D.DeliveryMethodName
+    LEFT JOIN Syn_InvoiceLines IL ON I.InvoiceID = IL.InvoiceID
+    GROUP BY I.InvoiceID, I.InvoiceDate, C.CustomerName, D.DeliveryMethod
+    ORDER BY C.CustomerName ASC, I.InvoiceDate DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE SP_InsertSale
+    @CustomerID INT,
+    @DeliveryMethodID INT,
+    @CustomerPurchaseOrderNumber NVARCHAR(20),
+    @ContactPersonID INT,
+    @SalespersonPersonID INT,
+    @InvoiceDate DATE,
+    @DeliveryInstructions NVARCHAR(500)
+AS
+BEGIN
+    INSERT INTO Syn_Invoices (CustomerID, DeliveryMethodID, CustomerPurchaseOrderNumber, ContactPersonID, SalespersonPersonID, InvoiceDate, DeliveryInstructions)
+    VALUES (@CustomerID, @DeliveryMethodID, @CustomerPurchaseOrderNumber, @ContactPersonID, @SalespersonPersonID, @InvoiceDate, @DeliveryInstructions);
+    SELECT SCOPE_IDENTITY() AS NewInvoiceID;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE SP_UpdateSale
+    @InvoiceID INT,
+    @CustomerID INT,
+    @DeliveryMethodID INT,
+    @CustomerPurchaseOrderNumber NVARCHAR(20),
+    @ContactPersonID INT,
+    @SalespersonPersonID INT,
+    @InvoiceDate DATE,
+    @DeliveryInstructions NVARCHAR(500)
+AS
+BEGIN
+    UPDATE Syn_Invoices
+    SET CustomerID = @CustomerID,
+        DeliveryMethodID = @DeliveryMethodID,
+        CustomerPurchaseOrderNumber = @CustomerPurchaseOrderNumber,
+        ContactPersonID = @ContactPersonID,
+        SalespersonPersonID = @SalespersonPersonID,
+        InvoiceDate = @InvoiceDate,
+        DeliveryInstructions = @DeliveryInstructions
+    WHERE InvoiceID = @InvoiceID;
+END;
+GO
