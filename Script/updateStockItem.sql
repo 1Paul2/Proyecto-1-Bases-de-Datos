@@ -4,6 +4,7 @@ CREATE OR ALTER PROCEDURE SP_UpdateStockItem
     @StockItemID INT,
     @StockItemName NVARCHAR(100),
     @SupplierID INT,
+    @LeadTimeDays INT,
     @ColorID INT = NULL,
     @UnitPackageID INT,
     @OuterPackageID INT,
@@ -12,6 +13,7 @@ CREATE OR ALTER PROCEDURE SP_UpdateStockItem
     @Size NVARCHAR(20) = NULL,
     @TaxRate DECIMAL(18, 2),
     @UnitPrice DECIMAL(18, 2),
+    @IsChillerStock	bit,
     @RecommendedRetailPrice DECIMAL(18, 2) = NULL,
     @TypicalWeightPerUnit DECIMAL(18, 2) = NULL,
     @SearchDetails NVARCHAR(MAX) = NULL,
@@ -30,6 +32,7 @@ BEGIN
         UPDATE Syn_StockItems
         SET StockItemName = @StockItemName,
         SupplierID = @SupplierID,
+        LeadTimeDays = @LeadTimeDays,
         ColorID = @ColorID,
         UnitPackageID = @UnitPackageID,
         OuterPackageID = @OuterPackageID,
@@ -38,6 +41,7 @@ BEGIN
         Size = @Size,
         TaxRate = @TaxRate,
         UnitPrice = @UnitPrice,
+        IsChillerStock = @IsChillerStock,
         RecommendedRetailPrice = @RecommendedRetailPrice,
         TypicalWeightPerUnit = @TypicalWeightPerUnit
         WHERE StockItemID = @StockItemID;

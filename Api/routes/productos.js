@@ -3,8 +3,8 @@ const router = express.Router();
 const { sql, poolPromise } = require('../db');
 
 const camposProducto = [
-  'StockItemName', 'SupplierID', 'UnitPackageID', 'OuterPackageID',
-  'QuantityPerOuter', 'TaxRate', 'UnitPrice'
+  'StockItemName', 'SupplierID', 'LeadTimeDays', 'UnitPackageID', 'OuterPackageID',
+  'QuantityPerOuter', 'TaxRate', 'UnitPrice', 'IsChillerStock', 'LastEditedBy'
 ];
 
 function faltantes(body, campos) {
@@ -21,6 +21,7 @@ function parametrosProducto(request, body) {
   return request
     .input('StockItemName', sql.NVarChar(100), body.StockItemName)
     .input('SupplierID', sql.Int, body.SupplierID)
+    .input('LeadTimeDays', sql.Int, body.LeadTimeDays)
     .input('ColorID', sql.Int, body.ColorID ?? null)
     .input('UnitPackageID', sql.Int, body.UnitPackageID)
     .input('OuterPackageID', sql.Int, body.OuterPackageID)
@@ -29,10 +30,12 @@ function parametrosProducto(request, body) {
     .input('Size', sql.NVarChar(20), body.Size ?? null)
     .input('TaxRate', sql.Decimal(18, 2), decimalOpcional(body.TaxRate))
     .input('UnitPrice', sql.Decimal(18, 2), decimalOpcional(body.UnitPrice))
+    .input('IsChillerStock', sql.Bit, body.IsChillerStock ?? false)
     .input('RecommendedRetailPrice', sql.Decimal(18, 2), decimalOpcional(body.RecommendedRetailPrice))
     .input('TypicalWeightPerUnit', sql.Decimal(18, 2), decimalOpcional(body.TypicalWeightPerUnit))
     .input('SearchDetails', sql.NVarChar(sql.MAX), body.SearchDetails ?? null)
-    .input('BinLocation', sql.NVarChar(20), body.BinLocation ?? null);
+    .input('BinLocation', sql.NVarChar(20), body.BinLocation ?? null)
+    .input('LastEditedBy', sql.Int, body.LastEditedBy);
 }
 
 function estadoError(err) {

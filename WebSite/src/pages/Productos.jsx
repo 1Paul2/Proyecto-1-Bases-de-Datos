@@ -19,8 +19,8 @@ const filtrosIniciales = {
 };
 
 const formularioInicial = {
-  StockItemName: '', SupplierID: '', ColorID: '', UnitPackageID: '',
-  OuterPackageID: '', QuantityPerOuter: 1, Brand: '', Size: '', TaxRate: 0,
+  StockItemName: '', SupplierID: '', LeadTimeDays: 1, ColorID: '', UnitPackageID: '',
+  OuterPackageID: '', QuantityPerOuter: 1, Brand: '', Size: '', TaxRate: 0, IsChillerStock: false,
   UnitPrice: '', RecommendedRetailPrice: '', TypicalWeightPerUnit: '',
   SearchDetails: '', BinLocation: ''
 };
@@ -95,6 +95,7 @@ export default function Productos() {
         StockItemID: datos.StockItemID,
         StockItemName: datos.StockItemName ?? '',
         SupplierID: datos.SupplierID ?? '',
+        LeadTimeDays: datos.LeadTimeDays ?? 1,
         ColorID: datos.ColorID ?? '',
         UnitPackageID: datos.UnitPackageID ?? '',
         OuterPackageID: datos.OuterPackageID ?? '',
@@ -102,6 +103,7 @@ export default function Productos() {
         Brand: datos.Brand ?? '', Size: datos.Size ?? '',
         TaxRate: datos.TaxRate ?? 0,
         UnitPrice: datos.UnitPrice ?? '',
+        IsChillerStock: datos.IsChillerStock ?? false,
         RecommendedRetailPrice: datos.RecommendedRetailPrice ?? '',
         TypicalWeightPerUnit: datos.TypicalWeightPerUnit ?? '',
         SearchDetails: datos.SearchDetails ?? '',
@@ -238,6 +240,7 @@ export default function Productos() {
             <h2>{modoFormulario === 'nuevo' ? 'Nuevo producto' : 'Editar producto'}</h2>
             <label>Nombre<input name="StockItemName" value={formulario.StockItemName} onChange={cambiarFormulario} required /></label>
             <label>Proveedor<input name="SupplierID" type="number" value={formulario.SupplierID} onChange={cambiarFormulario} required /></label>
+            <label>Días de entrega<input name="LeadTimeDays" type="number" min="0" value={formulario.LeadTimeDays} onChange={cambiarFormulario} required /></label>
             <label>Color<input name="ColorID" type="number" value={formulario.ColorID} onChange={cambiarFormulario} /></label>
             <label>Paquete unitario<input name="UnitPackageID" type="number" value={formulario.UnitPackageID} onChange={cambiarFormulario} required /></label>
             <label>Paquete exterior<input name="OuterPackageID" type="number" value={formulario.OuterPackageID} onChange={cambiarFormulario} required /></label>
@@ -246,10 +249,12 @@ export default function Productos() {
             <label>Tamaño<input name="Size" value={formulario.Size} onChange={cambiarFormulario} /></label>
             <label>Impuesto<input name="TaxRate" type="number" step="0.01" min="0" value={formulario.TaxRate} onChange={cambiarFormulario} required /></label>
             <label>Precio unitario<input name="UnitPrice" type="number" step="0.01" min="0" value={formulario.UnitPrice} onChange={cambiarFormulario} required /></label>
+            <label>Refrigerado<input name="IsChillerStock" type="checkbox" checked={formulario.IsChillerStock} onChange={evento => cambiarFormulario({ target: { name: 'IsChillerStock', value: evento.target.checked } })} /></label>
             <label>Precio recomendado<input name="RecommendedRetailPrice" type="number" step="0.01" min="0" value={formulario.RecommendedRetailPrice} onChange={cambiarFormulario} /></label>
             <label>Peso típico<input name="TypicalWeightPerUnit" type="number" step="0.01" min="0" value={formulario.TypicalWeightPerUnit} onChange={cambiarFormulario} /></label>
             <label>Palabras clave<textarea name="SearchDetails" value={formulario.SearchDetails} onChange={cambiarFormulario} /></label>
             <label>Ubicación<input name="BinLocation" value={formulario.BinLocation} onChange={cambiarFormulario} /></label>
+            <label>Última edición por<input name="LastEditedBy" type="number" value={formulario.LastEditedBy} onChange={cambiarFormulario} required /></label>
             <button type="submit" disabled={guardando}>{guardando ? 'Guardando...' : 'Guardar'}</button>
           </form>
         </div>
