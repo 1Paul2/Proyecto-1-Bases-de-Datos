@@ -12,7 +12,7 @@ BEGIN
     INNER JOIN Syn_Customers C ON I.CustomerID = C.CustomerID
     INNER JOIN Syn_DeliveryMethods D ON I.DeliveryMethodID = D.DeliveryMethodName
     LEFT JOIN Syn_InvoiceLines IL ON I.InvoiceID = IL.InvoiceID
-    GROUP BY I.InvoiceID, I.InvoiceDate, C.CustomerName, D.DeliveryMethod
+    GROUP BY I.InvoiceID, I.InvoiceDate, C.CustomerName, D.DeliveryMethodName
     ORDER BY C.CustomerName ASC, I.InvoiceDate DESC;
 END;
 GO

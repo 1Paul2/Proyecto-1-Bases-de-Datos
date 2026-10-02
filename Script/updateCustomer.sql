@@ -23,8 +23,17 @@ CREATE OR ALTER PROCEDURE SP_UpdateCustomer
     @DeliveryLongitude DECIMAL(9, 6) = NULL
 AS
 BEGIN
-    UPDATE Sales.Customers
-    SET CustomerName = @CustomerName,
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS (SELECT 1 FROM Syn_Customers WHERE CustomerID = @CustomerID)
+            THROW 50001, 'El cliente indicado no existe.', 1;
+
+        UPDATE Syn_Customers
+        SET CustomerName = @CustomerName,
         CustomerCategoryID = @CustomerCategoryID,
         BuyingGroupID = @BuyingGroupID,
         PrimaryContactPersonID = @PrimaryContactPersonID,
@@ -41,7 +50,14 @@ BEGIN
         DeliveryAddressLine2 = @DeliveryAddressLine2,
         PostalAddressLine1 = @PostalAddressLine1,
         PostalAddressLine2 = @PostalAddressLine2,
-        DeliveryLocation = GEOGRAPHY::Point(@DeliveryLatitude, @DeliveryLongitude, 4326)
-    WHERE CustomerID = @CustomerID;
+            DeliveryLocation = CASE WHEN @DeliveryLatitude IS NULL AND @DeliveryLongitude IS NULL THEN NULL ELSE GEOGRAPHY::Point(@DeliveryLatitude, @DeliveryLongitude, 4326) END
+        WHERE CustomerID = @CustomerID;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO

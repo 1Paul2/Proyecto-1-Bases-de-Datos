@@ -18,8 +18,17 @@ CREATE OR ALTER PROCEDURE SP_UpdateStockItem
     @BinLocation NVARCHAR(20) = NULL
 AS
 BEGIN
-    UPDATE Syn_StockItems
-    SET StockItemName = @StockItemName,
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS (SELECT 1 FROM Syn_StockItems WHERE StockItemID = @StockItemID)
+            THROW 50001, 'El producto indicado no existe.', 1;
+
+        UPDATE Syn_StockItems
+        SET StockItemName = @StockItemName,
         SupplierID = @SupplierID,
         ColorID = @ColorID,
         UnitPackageID = @UnitPackageID,
@@ -30,8 +39,14 @@ BEGIN
         TaxRate = @TaxRate,
         UnitPrice = @UnitPrice,
         RecommendedRetailPrice = @RecommendedRetailPrice,
-        TypicalWeightPerUnit = @TypicalWeightPerUnit,
-        SearchDetails = @SearchDetails
-    WHERE StockItemID = @StockItemID;
+        TypicalWeightPerUnit = @TypicalWeightPerUnit
+        WHERE StockItemID = @StockItemID;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
