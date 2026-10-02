@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Clientes from './pages/Clientes';
 import Proveedores from './pages/Proveedores';
+import Productos from './pages/Productos';
 import './App.css';
 
 const modulos = {
@@ -44,7 +45,8 @@ export default function App() {
       <main className='App-content'>
         {modulo === 'clientes' && <Clientes />}
         {modulo === 'proveedores' && <Proveedores />}
-        {modulo !== 'clientes' && modulo !== 'proveedores' && <Test name={modulos[modulo]} />}
+        {modulo === 'productos' && <Productos />}
+        {modulo !== 'clientes' && modulo !== 'proveedores' && modulo !== 'productos' && <Test name={modulos[modulo]} />}
       </main>
     </div>
   )
