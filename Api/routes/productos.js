@@ -11,6 +11,12 @@ function faltantes(body, campos) {
   return campos.filter(campo => body[campo] === undefined || body[campo] === null || body[campo] === '');
 }
 
+function decimalOpcional(valor) {
+  if (valor === undefined || valor === null || valor === '') return null;
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : null;
+}
+
 function parametrosProducto(request, body) {
   return request
     .input('StockItemName', sql.NVarChar(100), body.StockItemName)
@@ -21,10 +27,10 @@ function parametrosProducto(request, body) {
     .input('QuantityPerOuter', sql.Int, body.QuantityPerOuter)
     .input('Brand', sql.NVarChar(50), body.Brand ?? null)
     .input('Size', sql.NVarChar(20), body.Size ?? null)
-    .input('TaxRate', sql.Decimal(18, 2), body.TaxRate)
-    .input('UnitPrice', sql.Decimal(18, 2), body.UnitPrice)
-    .input('RecommendedRetailPrice', sql.Decimal(18, 2), body.RecommendedRetailPrice ?? null)
-    .input('TypicalWeightPerUnit', sql.Decimal(18, 2), body.TypicalWeightPerUnit ?? null)
+    .input('TaxRate', sql.Decimal(18, 2), decimalOpcional(body.TaxRate))
+    .input('UnitPrice', sql.Decimal(18, 2), decimalOpcional(body.UnitPrice))
+    .input('RecommendedRetailPrice', sql.Decimal(18, 2), decimalOpcional(body.RecommendedRetailPrice))
+    .input('TypicalWeightPerUnit', sql.Decimal(18, 2), decimalOpcional(body.TypicalWeightPerUnit))
     .input('SearchDetails', sql.NVarChar(sql.MAX), body.SearchDetails ?? null)
     .input('BinLocation', sql.NVarChar(20), body.BinLocation ?? null);
 }

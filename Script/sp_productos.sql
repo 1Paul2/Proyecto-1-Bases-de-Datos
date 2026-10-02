@@ -36,10 +36,14 @@ CREATE OR ALTER PROCEDURE SP_GetStockItemDetails
     @StockItemID INT
 AS
 BEGIN
-    SELECT SI.StockItemName as StockItemName,
+    SELECT SI.StockItemID as StockItemID,
+    SI.StockItemName as StockItemName,
     S.SupplierID as SupplierID,
     S.SupplierName as SupplierName,
     C.ColorName as ColorName,
+    SI.ColorID as ColorID,
+    SI.UnitPackageID as UnitPackageID,
+    SI.OuterPackageID as OuterPackageID,
     PT.PackageTypeName as UnitPackageTypeName,
     PT2.PackageTypeName as OuterPackageTypeName,
     SI.QuantityPerOuter as QuantityPerOuter,
@@ -49,7 +53,7 @@ BEGIN
     SI.UnitPrice as UnitPrice,
     SI.RecommendedRetailPrice as RecommendedRetailPrice,
     SI.TypicalWeightPerUnit as TypicalWeightPerUnit,
-    SI.SearchDetails as SearchDetail,
+    SI.SearchDetails as SearchDetails,
     SIH.QuantityOnHand as QuantityOnHand,
     SIH.BinLocation as BinLocation
     FROM Syn_StockItems SI

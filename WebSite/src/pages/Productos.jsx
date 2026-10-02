@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { pedir } from '../Api';
+import { enviar, pedir } from '../Api';
 import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
 import Detalle from '../components/Detalle';
@@ -18,6 +18,13 @@ const filtrosIniciales = {
   grupo: ''
 };
 
+const formularioInicial = {
+  StockItemName: '', SupplierID: '', ColorID: '', UnitPackageID: '',
+  OuterPackageID: '', QuantityPerOuter: 1, Brand: '', Size: '', TaxRate: 0,
+  UnitPrice: '', RecommendedRetailPrice: '', TypicalWeightPerUnit: '',
+  SearchDetails: '', BinLocation: ''
+};
+
 export default function Productos() {
   const [filtros, setFiltros] = useState(filtrosIniciales);
   const [grupos, setGrupos] = useState([]);
@@ -25,6 +32,10 @@ export default function Productos() {
   const [pagina, setPagina] = useState(1);
   const [detalle, setDetalle] = useState(null);
   const [error, setError] = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [formulario, setFormulario] = useState(formularioInicial);
+  const [modoFormulario, setModoFormulario] = useState(null);
+  const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     pedir('/productos/grupos')
@@ -68,6 +79,92 @@ export default function Productos() {
     }
   };
 
+  const abrirNuevo = () => {
+    setError('');
+    setMensaje('');
+    setFormulario(formularioInicial);
+    setModoFormulario('nuevo');
+  };
+
+  const abrirEdicion = async fila => {
+    try {
+      const res = await pedir(`/productos/${fila.StockItemID}`);
+      const datos = res.data[0];
+      setFormulario({
+        ...formularioInicial,
+        StockItemID: datos.StockItemID,
+        StockItemName: datos.StockItemName ?? '',
+        SupplierID: datos.SupplierID ?? '',
+        ColorID: datos.ColorID ?? '',
+        UnitPackageID: datos.UnitPackageID ?? '',
+        OuterPackageID: datos.OuterPackageID ?? '',
+        QuantityPerOuter: datos.QuantityPerOuter ?? 1,
+        Brand: datos.Brand ?? '', Size: datos.Size ?? '',
+        TaxRate: datos.TaxRate ?? 0,
+        UnitPrice: datos.UnitPrice ?? '',
+        RecommendedRetailPrice: datos.RecommendedRetailPrice ?? '',
+        TypicalWeightPerUnit: datos.TypicalWeightPerUnit ?? '',
+        SearchDetails: datos.SearchDetails ?? '',
+        BinLocation: datos.BinLocation ?? ''
+      });
+      setError('');
+      setMensaje('');
+      setModoFormulario('editar');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const cambiarFormulario = evento => {
+    const { name, value } = evento.target;
+    setFormulario(anterior => ({ ...anterior, [name]: value }));
+  };
+
+  const recargar = async () => {
+    const params = new URLSearchParams();
+    if (filtros.name) params.append('name', filtros.name);
+    if (filtros.grupo) params.append('grupo', filtros.grupo);
+    const res = await pedir(`/productos?${params}`);
+    setProductos(res.data);
+  };
+
+  const guardar = async evento => {
+    evento.preventDefault();
+    setGuardando(true);
+    setError('');
+    setMensaje('');
+    try {
+      const datos = { ...formulario };
+      const id = datos.StockItemID;
+      delete datos.StockItemID;
+      if (modoFormulario === 'nuevo') {
+        await enviar('/productos', 'POST', datos);
+        setMensaje('Producto creado correctamente.');
+      } else {
+        await enviar(`/productos/${id}`, 'PUT', datos);
+        setMensaje('Producto actualizado correctamente.');
+      }
+      setModoFormulario(null);
+      setPagina(1);
+      await recargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const eliminar = async fila => {
+    if (!window.confirm(`¿Eliminar el producto "${fila.StockItemName}"?`)) return;
+    try {
+      await enviar(`/productos/${fila.StockItemID}`, 'DELETE');
+      setMensaje('Producto eliminado correctamente.');
+      setProductos(actuales => actuales.filter(item => item.StockItemID !== fila.StockItemID));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const campos = [
     {
       nombre: 'name',
@@ -88,7 +185,10 @@ export default function Productos() {
 
   return (
     <section>
-      <h1>Productos</h1>
+      <div className="encabezado-modulo">
+        <h1>Productos</h1>
+        <button type="button" onClick={abrirNuevo}>Nuevo producto</button>
+      </div>
 
       <div className="barra-filtros">
         <Filtros
@@ -103,6 +203,7 @@ export default function Productos() {
       </div>
 
       {error && <p className="mensaje-error">{error}</p>}
+      {mensaje && <p className="mensaje-exito">{mensaje}</p>}
 
       <p>{productos.length} resultados</p>
 
@@ -110,6 +211,12 @@ export default function Productos() {
         columnas={columnas}
         filas={productosVisibles}
         onFila={verDetalle}
+        acciones={fila => (
+          <div className="acciones-fila">
+            <button type="button" onClick={evento => { evento.stopPropagation(); abrirEdicion(fila); }}>Editar</button>
+            <button type="button" onClick={evento => { evento.stopPropagation(); eliminar(fila); }}>Eliminar</button>
+          </div>
+        )}
       />
       <Paginacion
         total={productos.length}
@@ -123,6 +230,30 @@ export default function Productos() {
         datos={detalle}
         onCerrar={() => setDetalle(null)}
       />
+
+      {modoFormulario && (
+        <div className="fondo" onClick={() => setModoFormulario(null)}>
+          <form className="ventana formulario" onSubmit={guardar} onClick={evento => evento.stopPropagation()}>
+            <button type="button" onClick={() => setModoFormulario(null)}>Cerrar</button>
+            <h2>{modoFormulario === 'nuevo' ? 'Nuevo producto' : 'Editar producto'}</h2>
+            <label>Nombre<input name="StockItemName" value={formulario.StockItemName} onChange={cambiarFormulario} required /></label>
+            <label>Proveedor<input name="SupplierID" type="number" value={formulario.SupplierID} onChange={cambiarFormulario} required /></label>
+            <label>Color<input name="ColorID" type="number" value={formulario.ColorID} onChange={cambiarFormulario} /></label>
+            <label>Paquete unitario<input name="UnitPackageID" type="number" value={formulario.UnitPackageID} onChange={cambiarFormulario} required /></label>
+            <label>Paquete exterior<input name="OuterPackageID" type="number" value={formulario.OuterPackageID} onChange={cambiarFormulario} required /></label>
+            <label>Cantidad por paquete<input name="QuantityPerOuter" type="number" min="1" value={formulario.QuantityPerOuter} onChange={cambiarFormulario} required /></label>
+            <label>Marca<input name="Brand" value={formulario.Brand} onChange={cambiarFormulario} /></label>
+            <label>Tamaño<input name="Size" value={formulario.Size} onChange={cambiarFormulario} /></label>
+            <label>Impuesto<input name="TaxRate" type="number" step="0.01" min="0" value={formulario.TaxRate} onChange={cambiarFormulario} required /></label>
+            <label>Precio unitario<input name="UnitPrice" type="number" step="0.01" min="0" value={formulario.UnitPrice} onChange={cambiarFormulario} required /></label>
+            <label>Precio recomendado<input name="RecommendedRetailPrice" type="number" step="0.01" min="0" value={formulario.RecommendedRetailPrice} onChange={cambiarFormulario} /></label>
+            <label>Peso típico<input name="TypicalWeightPerUnit" type="number" step="0.01" min="0" value={formulario.TypicalWeightPerUnit} onChange={cambiarFormulario} /></label>
+            <label>Palabras clave<textarea name="SearchDetails" value={formulario.SearchDetails} onChange={cambiarFormulario} /></label>
+            <label>Ubicación<input name="BinLocation" value={formulario.BinLocation} onChange={cambiarFormulario} /></label>
+            <button type="submit" disabled={guardando}>{guardando ? 'Guardando...' : 'Guardar'}</button>
+          </form>
+        </div>
+      )}
     </section>
   );
 }
