@@ -91,3 +91,29 @@ dd { margin: 0; }
     width: 100%;
   }
 }
+
+.barra-filtros {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.barra-filtros button {
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border: 1px solid #c7d0dc;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+}
+
+.barra-filtros button:hover {
+  background: #356859;
+  color: white;
+}
+
+.mensaje-error {
+  color: #a52828;
+  font-weight: 600;
+}

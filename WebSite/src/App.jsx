@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Clientes from './pages/Clientes';
+import Proveedores from './pages/Proveedores';
 import './App.css';
 
 const modulos = {
@@ -42,10 +43,8 @@ export default function App() {
       </header>
       <main className='App-content'>
         {modulo === 'clientes' && <Clientes />}
-        {modulo === 'proveedores' && Test({name: modulos.proveedores})}
-        {modulo === 'productos' && Test({name: modulos.productos})}
-        {modulo === 'ventas' && Test({name: modulos.ventas})}
-        {modulo === 'estadisticas' && Test({name: modulos.estadisticas})}
+        {modulo === 'proveedores' && <Proveedores />}
+        {modulo !== 'clientes' && modulo !== 'proveedores' && <Test name={modulos[modulo]} />}
       </main>
     </div>
   )
