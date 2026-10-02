@@ -30,8 +30,7 @@ BEGIN
         TaxRate = @TaxRate,
         UnitPrice = @UnitPrice,
         RecommendedRetailPrice = @RecommendedRetailPrice,
-        TypicalWeightPerUnit = @TypicalWeightPerUnit,
-        SearchDetails = @SearchDetails
+        TypicalWeightPerUnit = @TypicalWeightPerUnit
     WHERE StockItemID = @StockItemID;
 END;
 GO

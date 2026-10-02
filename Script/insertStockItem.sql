@@ -17,8 +17,8 @@ CREATE OR ALTER PROCEDURE SP_InsertStockItem
     @BinLocation NVARCHAR(20) = NULL
 AS
 BEGIN
-    INSERT INTO Syn_StockItems (StockItemName, SupplierID, ColorID, UnitPackageID, OuterPackageID, QuantityPerOuter, Brand, Size, TaxRate, UnitPrice, RecommendedRetailPrice, TypicalWeightPerUnit, SearchDetails)
-    VALUES (@StockItemName, @SupplierID, @ColorID, @UnitPackageID, @OuterPackageID, @QuantityPerOuter, @Brand, @Size, @TaxRate, @UnitPrice, @RecommendedRetailPrice, @TypicalWeightPerUnit, @SearchDetails);
+    INSERT INTO Syn_StockItems (StockItemName, SupplierID, ColorID, UnitPackageID, OuterPackageID, QuantityPerOuter, Brand, Size, TaxRate, UnitPrice, RecommendedRetailPrice, TypicalWeightPerUnit)
+    VALUES (@StockItemName, @SupplierID, @ColorID, @UnitPackageID, @OuterPackageID, @QuantityPerOuter, @Brand, @Size, @TaxRate, @UnitPrice, @RecommendedRetailPrice, @TypicalWeightPerUnit);
     SELECT SCOPE_IDENTITY() AS NewStockItemID;
 END;
 GO
