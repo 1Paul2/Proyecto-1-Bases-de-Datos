@@ -21,6 +21,10 @@ BEGIN
     BEGIN CATCH
         IF @@TRANCOUNT > 0
             ROLLBACK TRANSACTION;
+
+        IF ERROR_NUMBER() = 547
+            THROW 50002, 'No se puede eliminar el proveedor porque tiene movimientos de inventario u otros registros relacionados.', 1;
+
         THROW;
     END CATCH;
 END;
