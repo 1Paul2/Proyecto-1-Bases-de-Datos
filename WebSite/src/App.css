@@ -1,6 +1,12 @@
 table { border-collapse: collapse; width: 100%; }
 th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
 tbody tr:hover { background: #f0f0f0; }
+.encabezado-modulo { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.acciones-fila { display: flex; gap: .5rem; }
+.mensaje-exito { color: #176b3a; font-weight: 600; }
+.formulario { display: grid; gap: .75rem; }
+.formulario label { display: grid; gap: .25rem; font-weight: 600; }
+.formulario input { padding: .5rem; }
 .tabla-vacia { padding: 18px; text-align: center; color: #6b7280; }
 .paginacion {
   display: flex;

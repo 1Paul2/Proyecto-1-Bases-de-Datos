@@ -1,9 +1,10 @@
-export default function Tabla({ columnas, filas, onFila }) {
+export default function Tabla({ columnas, filas, onFila, acciones }) {
   return (
     <table>
       <thead>
         <tr>
           {columnas.map(c => <th key={c.clave}>{c.titulo}</th>)}
+          {acciones && <th>Acciones</th>}
         </tr>
       </thead>
       <tbody>
@@ -17,6 +18,7 @@ export default function Tabla({ columnas, filas, onFila }) {
           <tr key={obtenerClave(f, i)} onClick={() => onFila && onFila(f)}
               style={{ cursor: onFila ? 'pointer' : 'default' }}>
             {columnas.map(c => <td key={c.clave}>{f[c.clave]}</td>)}
+            {acciones && <td>{acciones(f)}</td>}
           </tr>
         ))}
       </tbody>
