@@ -11,14 +11,30 @@ CREATE OR ALTER PROCEDURE SP_UpdateSale
     @DeliveryInstructions NVARCHAR(500)
 AS
 BEGIN
-    UPDATE Syn_Invoices
-    SET CustomerID = @CustomerID,
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS (SELECT 1 FROM Syn_Invoices WHERE InvoiceID = @InvoiceID)
+            THROW 50001, 'La venta indicada no existe.', 1;
+
+        UPDATE Syn_Invoices
+        SET CustomerID = @CustomerID,
         DeliveryMethodID = @DeliveryMethodID,
         CustomerPurchaseOrderNumber = @CustomerPurchaseOrderNumber,
         ContactPersonID = @ContactPersonID,
         SalespersonPersonID = @SalespersonPersonID,
         InvoiceDate = @InvoiceDate,
         DeliveryInstructions = @DeliveryInstructions
-    WHERE InvoiceID = @InvoiceID;
+        WHERE InvoiceID = @InvoiceID;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
