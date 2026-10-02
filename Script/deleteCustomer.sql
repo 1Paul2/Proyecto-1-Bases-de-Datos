@@ -1,3 +1,6 @@
+use WideWorldImporters;
+GO 
+
 CREATE OR ALTER PROCEDURE SP_DeleteCustomer
     @CustomerID INT
 AS

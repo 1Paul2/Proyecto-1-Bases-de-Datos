@@ -1,3 +1,5 @@
+use WideWorldImporters;
+GO
 CREATE OR ALTER PROCEDURE SP_UpdateSupplier
     @SupplierID INT,
     @SupplierReference NVARCHAR(20),

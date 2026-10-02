@@ -1,3 +1,5 @@
+use WideWorldImporters;
+GO
 CREATE OR ALTER PROCEDURE SP_InsertCustomer
     @CustomerName NVARCHAR(100),
     @CustomerCategoryID INT,

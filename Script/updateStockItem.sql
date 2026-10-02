@@ -1,3 +1,5 @@
+use WideWorldImporters;
+GO
 CREATE OR ALTER PROCEDURE SP_UpdateStockItem
     @StockItemID INT,
     @StockItemName NVARCHAR(100),

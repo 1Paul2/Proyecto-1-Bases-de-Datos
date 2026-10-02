@@ -1,4 +1,5 @@
-
+use WideWorldImporters;
+GO
 CREATE OR ALTER PROCEDURE SP_UpdateCustomer
     @CustomerID INT,
     @CustomerName NVARCHAR(100),
