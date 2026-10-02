@@ -34,6 +34,12 @@ CREATE OR ALTER PROCEDURE SP_GetSupplierDetails
 AS
 BEGIN
     SELECT S.SupplierReference as SupplierReference,
+    S.SupplierCategoryID as SupplierCategoryID,
+    S.PrimaryContactPersonID as PrimaryContactPersonID,
+    S.AlternateContactPersonID as AlternateContactPersonID,
+    S.DeliveryMethodID as DeliveryMethodID,
+    S.DeliveryCityID as DeliveryCityID,
+    S.PostalCityID as PostalCityID,
     S.SupplierName as SupplierName,
     SC.SupplierCategoryName as SupplierCategoryName,
     P.FullName as PrimaryContactName,
@@ -41,6 +47,7 @@ BEGIN
     DM.DeliveryMethodName as DeliveryMethodName,
     C.CityName as DeliveryCityName,
     S.DeliveryPostalCode as DeliveryPostalCode,
+    S.PostalPostalCode as PostalPostalCode,
     S.PhoneNumber as PhoneNumber,
     S.FaxNumber as FaxNumber,
     S.WebsiteURL as WebsiteURL,
@@ -53,7 +60,8 @@ BEGIN
     S.BankAccountBranch as BankAccountBranch,
     S.BankAccountName as BankAccountName,
     S.BankAccountNumber as BankAccountNumber,
-    S.PaymentDays as PaymentDays
+    S.PaymentDays as PaymentDays,
+    S.LastEditedBy as LastEditedBy
     FROM Syn_Suppliers S
     INNER JOIN Syn_SupplierCategories SC ON SC.SupplierCategoryID = S.SupplierCategoryID
     INNER JOIN Syn_DeliveryMethods DM ON S.DeliveryMethodID = DM.DeliveryMethodID
