@@ -60,6 +60,7 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: `Campos obligatorios: ${faltantes.join(', ')}` });
   }
 
+  // insert cliente
   try {
     const pool = await poolPromise;
     const result = await agregarParametrosCliente(pool.request(), req.body)
@@ -81,6 +82,8 @@ router.put('/:id', async (req, res) => {
     return res.status(400).json({ error: `Campos obligatorios: ${faltantes.join(', ')}` });
   }
 
+
+  // update cliente
   try {
     const pool = await poolPromise;
     await agregarParametrosCliente(pool.request(), req.body)
@@ -99,6 +102,7 @@ router.delete('/:id', async (req, res) => {
     return res.status(400).json({ error: 'CustomerID inválido' });
   }
 
+  // delete cliente
   try {
     const pool = await poolPromise;
     await pool.request()
@@ -111,7 +115,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-
+// Detalle
 router.get('/:nombre', async (req, res) => {
   try {
     const pool = await poolPromise;
