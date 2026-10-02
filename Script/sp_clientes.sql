@@ -62,3 +62,120 @@ GO
 
 --EXEC SP_LISTA_CLIENTES @Apodo = 'Tail';
 --EXEC SP_CLIENTES @Nombre = 'Tailspin Toys (Arbor Vitae, WI)';
+
+CREATE OR ALTER PROCEDURE SP_InsertarCliente
+    @CustomerName NVARCHAR(100),
+    @CustomerCategoryID INT,
+    @BuyingGroupID INT = NULL,
+    @PrimaryContactPersonID INT,
+    @AlternateContactPersonID INT = NULL,
+    @BillToCustomerID INT = NULL,
+    @DeliveryMethodID INT,
+    @DeliveryCityID INT = NULL,
+    @PostalPostalCode NVARCHAR(20) = NULL,
+    @PhoneNumber NVARCHAR(20) = NULL,
+    @FaxNumber NVARCHAR(20) = NULL,
+    @PaymentDays INT,
+    @WebsiteURL NVARCHAR(100) = NULL,
+    @DeliveryAddressLine1 NVARCHAR(60) = NULL,
+    @DeliveryAddressLine2 NVARCHAR(60) = NULL,
+    @PostalAddressLine1 NVARCHAR(60) = NULL,
+    @PostalAddressLine2 NVARCHAR(60) = NULL,
+    @DeliveryLatitude DECIMAL(9, 6) = NULL,
+    @DeliveryLongitude DECIMAL(9, 6) = NULL
+AS
+BEGIN
+    INSERT INTO Sales.Customers (CustomerName, CustomerCategoryID, BuyingGroupID, PrimaryContactPersonID, AlternateContactPersonID, BillToCustomerID, DeliveryMethodID, DeliveryCityID, PostalPostalCode, PhoneNumber, FaxNumber, PaymentDays, WebsiteURL, DeliveryAddressLine1, DeliveryAddressLine2, PostalAddressLine1, PostalAddressLine2, DeliveryLocation)
+    VALUES (@CustomerName, @CustomerCategoryID, @BuyingGroupID, @PrimaryContactPersonID, @AlternateContactPersonID, @BillToCustomerID, @DeliveryMethodID, @DeliveryCityID, @PostalPostalCode, @PhoneNumber, @FaxNumber, @PaymentDays, @WebsiteURL, @DeliveryAddressLine1, @DeliveryAddressLine2, @PostalAddressLine1, @PostalAddressLine2, GEOGRAPHY::Point(@DeliveryLatitude, @DeliveryLongitude, 4326));
+    SELECT SCOPE_IDENTITY() AS NewCustomerID;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE SP_UPDATE_CLIENTE
+    @CustomerID INT,
+    @CustomerName NVARCHAR(100),
+    @CustomerCategoryID INT,
+    @BuyingGroupID INT = NULL,
+    @PrimaryContactPersonID INT,
+    @AlternateContactPersonID INT = NULL,
+    @BillToCustomerID INT = NULL,
+    @DeliveryMethodID INT,
+    @DeliveryCityID INT = NULL,
+    @PostalPostalCode NVARCHAR(20) = NULL,
+    @PhoneNumber NVARCHAR(20) = NULL,
+    @FaxNumber NVARCHAR(20) = NULL,
+    @PaymentDays INT,
+    @WebsiteURL NVARCHAR(100) = NULL,
+    @DeliveryAddressLine1 NVARCHAR(60) = NULL,
+    @DeliveryAddressLine2 NVARCHAR(60) = NULL,
+    @PostalAddressLine1 NVARCHAR(60) = NULL,
+    @PostalAddressLine2 NVARCHAR(60) = NULL,
+    @DeliveryLatitude DECIMAL(9, 6) = NULL,
+    @DeliveryLongitude DECIMAL(9, 6) = NULL
+AS
+BEGIN
+    UPDATE Sales.Customers
+    SET CustomerName = @CustomerName,
+        CustomerCategoryID = @CustomerCategoryID,
+        BuyingGroupID = @BuyingGroupID,
+        PrimaryContactPersonID = @PrimaryContactPersonID,
+        AlternateContactPersonID = @AlternateContactPersonID,
+        BillToCustomerID = @BillToCustomerID,
+        DeliveryMethodID = @DeliveryMethodID,
+        DeliveryCityID = @DeliveryCityID,
+        PostalPostalCode = @PostalPostalCode,
+        PhoneNumber = @PhoneNumber,
+        FaxNumber = @FaxNumber,
+        PaymentDays = @PaymentDays,
+        WebsiteURL = @WebsiteURL,
+        DeliveryAddressLine1 = @DeliveryAddressLine1,
+        DeliveryAddressLine2 = @DeliveryAddressLine2,
+        PostalAddressLine1 = @PostalAddressLine1,
+        PostalAddressLine2 = @PostalAddressLine2,
+        DeliveryLocation = GEOGRAPHY::Point(@DeliveryLatitude, @DeliveryLongitude, 4326)
+    WHERE CustomerID = @CustomerID;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE SP_ELIMINAR_CLIENTE
+    @CustomerID INT
+AS
+BEGIN
+    DELETE FROM Sales.Customers WHERE CustomerID = @CustomerID;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE SP_GetAllCustomers
+AS
+BEGIN
+    SELECT C.CustomerID,
+           C.CustomerName,
+           CC.CustomerCategoryName,
+           BG.BuyingGroupName,
+           P1.FullName AS PrimaryContact,
+           P2.FullName AS AlternateContact,
+           B.CustomerName AS BillToCustomer,
+           DM.DeliveryMethodName,
+           City.CityName AS DeliveryCity,
+           C.PostalPostalCode,
+           C.PhoneNumber,
+           C.FaxNumber,
+           C.PaymentDays,
+           C.WebsiteURL,
+           C.DeliveryAddressLine1,
+           C.DeliveryAddressLine2,
+           C.PostalAddressLine1,
+           C.PostalAddressLine2,
+           C.DeliveryLocation.Lat AS DeliveryLatitude,
+           C.DeliveryLocation.Long AS DeliveryLongitude
+    FROM Sales.Customers C
+    INNER JOIN Sales.CustomerCategories CC ON C.CustomerCategoryID = CC.CustomerCategoryID
+    LEFT JOIN Sales.BuyingGroups BG ON C.BuyingGroupID = BG.BuyingGroupID
+    INNER JOIN Application.People P1 ON C.PrimaryContactPersonID = P1.PersonID
+    LEFT JOIN Application.People P2 ON C.AlternateContactPersonID = P2.PersonID
+    LEFT JOIN Sales.Customers B ON C.BillToCustomerID = B.CustomerID
+    INNER JOIN Application.DeliveryMethods DM ON C.DeliveryMethodID = DM.DeliveryMethodID
+    LEFT JOIN Application.Cities City ON C.DeliveryCityID = City.CityID
+    ORDER BY C.CustomerName ASC;
+END;
+GO
