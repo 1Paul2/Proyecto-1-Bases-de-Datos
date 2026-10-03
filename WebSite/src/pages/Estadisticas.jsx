@@ -177,8 +177,16 @@ export default function Estadisticas() {
   const filasVisibles = filas.slice(inicio, inicio + POR_PAGINA);
 
   return (
-    <section>
-      <h1>Estadísticas</h1>
+    <section className="modulo">
+      <div className="modulo-header">
+        <div className="modulo-header-texto">
+          <p className="modulo-eyebrow">Reportes y Métricas</p>
+          <h1 className="modulo-titulo">Estadísticas</h1>
+          <span className="modulo-contador">
+            {filas.length} {filas.length === 1 ? 'resultado' : 'resultados'}
+          </span>
+        </div>
+      </div>
 
       <label className="selector-reporte">
         Reporte
@@ -192,22 +200,17 @@ export default function Estadisticas() {
       </label>
 
       <div className="barra-filtros">
-        <Filtros
-          campos={configuracion.campos}
-          valores={filtros}
-          onCambio={cambiarFiltro}
-        />
-
-        <button type="button" onClick={restaurarFiltros}>
+        <Filtros campos={configuracion.campos} valores={filtros} onCambio={cambiarFiltro} />
+        <button type="button" className="btn btn-fantasma" onClick={restaurarFiltros}>
           Restaurar filtros
         </button>
       </div>
 
-      {error && <p className="mensaje-error">{error}</p>}
+      {error && <p className="mensaje mensaje-error">{error}</p>}
 
-      <p>{filas.length} resultados</p>
-
-      <Tabla columnas={columnas} filas={filasVisibles} />
+      <div className="tabla-wrapper">
+        <Tabla columnas={columnas} filas={filasVisibles} />
+      </div>
 
       <Paginacion
         total={filas.length}

@@ -220,58 +220,45 @@ export default function Ventas() {
   }));
 
   return (
-    <section>
-      <div className="encabezado-modulo">
-        <h1>Ventas</h1>
-        <button type="button" onClick={abrirNuevo}>
-          Nueva venta
-        </button>
+    <section className="modulo">
+      <div className="modulo-header">
+        <div className="modulo-header-texto">
+          <p className="modulo-eyebrow">Facturación y Pedidos</p>
+          <h1 className="modulo-titulo">Ventas</h1>
+          <span className="modulo-contador">
+            {ventas.length} {ventas.length === 1 ? 'resultado' : 'resultados'}
+          </span>
+        </div>
+        <div className="modulo-acciones">
+          <button type="button" className="btn btn-primario" onClick={abrirNuevo}>
+            + Nueva venta
+          </button>
+        </div>
       </div>
 
       <div className="barra-filtros">
-        <Filtros
-          campos={campos}
-          valores={filtros}
-          onCambio={cambiarFiltro}
-        />
-
-        <button type="button" onClick={restaurarFiltros}>
+        <Filtros campos={campos} valores={filtros} onCambio={cambiarFiltro} />
+        <button type="button" className="btn btn-fantasma" onClick={restaurarFiltros}>
           Restaurar filtros
         </button>
       </div>
 
-      {error && <p className="mensaje-error">{error}</p>}
-      {mensaje && <p className="mensaje-exito">{mensaje}</p>}
+      {error && <p className="mensaje mensaje-error">{error}</p>}
+      {mensaje && <p className="mensaje mensaje-exito">{mensaje}</p>}
 
-      <p>{ventas.length} resultados</p>
-
-      <Tabla
-        columnas={columnas}
-        filas={ventasVisibles}
-        onFila={verDetalle}
-        acciones={fila => (
-          <div className="acciones-fila">
-            <button
-              type="button"
-              onClick={evento => {
-                evento.stopPropagation();
-                abrirEdicion(fila);
-              }}
-            >
-              Editar
-            </button>
-            <button
-              type="button"
-              onClick={evento => {
-                evento.stopPropagation();
-                eliminar(fila);
-              }}
-            >
-              Eliminar
-            </button>
-          </div>
-        )}
-      />
+      <div className="tabla-wrapper">
+        <Tabla
+          columnas={columnas}
+          filas={ventasVisibles}
+          onFila={verDetalle}
+          acciones={fila => (
+            <div className="acciones-fila">
+              <button type="button" onClick={e => { e.stopPropagation(); abrirEdicion(fila); }}>Editar</button>
+              <button type="button" onClick={e => { e.stopPropagation(); eliminar(fila); }}>Eliminar</button>
+            </div>
+          )}
+        />
+      </div>
 
       <Paginacion
         total={ventas.length}
@@ -282,56 +269,43 @@ export default function Ventas() {
 
       {detalle && (
         <div className="fondo" onClick={() => setDetalle(null)}>
-          <div className="ventana" onClick={evento => evento.stopPropagation()}>
-            <button type="button" onClick={() => setDetalle(null)}>
-              Cerrar
-            </button>
+          <div className="ventana" onClick={e => e.stopPropagation()}>
+            <button type="button" className="btn-cerrar" onClick={() => setDetalle(null)} aria-label="Cerrar">✕</button>
 
             <h2>Encabezado de factura</h2>
-
             <dl>
               {Object.entries(detalle.encabezado)
                 .filter(([clave]) => !['CustomerID', 'DeliveryMethodID', 'ContactPersonID', 'SalespersonPersonID'].includes(clave))
                 .map(([clave, valor]) => (
                   <div key={clave}>
                     <dt>{ETIQUETAS_ENCABEZADO[clave] || clave.replaceAll('_', ' ')}</dt>
-                    <dd>
-                      {clave === 'InvoiceDate' && valor
-                        ? String(valor).slice(0, 10)
-                        : (valor ?? '—')}
-                    </dd>
+                    <dd>{clave === 'InvoiceDate' && valor ? String(valor).slice(0, 10) : (valor ?? '—')}</dd>
                   </div>
                 ))}
             </dl>
 
             <h2>Detalle de factura</h2>
-
-            <Tabla
-              columnas={[
-                { clave: 'StockItemName', titulo: 'Producto' },
-                { clave: 'Quantity', titulo: 'Cantidad' },
-                { clave: 'UnitPrice', titulo: 'Precio unitario' },
-                { clave: 'TaxRate', titulo: 'Impuesto' },
-                { clave: 'TaxAmount', titulo: 'Monto impuesto' },
-                { clave: 'ExtendedPrice', titulo: 'Total línea' }
-              ]}
-              filas={detalle.lineas || []}
-            />
+            <div className="tabla-wrapper">
+              <Tabla
+                columnas={[
+                  { clave: 'StockItemName', titulo: 'Producto' },
+                  { clave: 'Quantity', titulo: 'Cantidad' },
+                  { clave: 'UnitPrice', titulo: 'Precio unitario' },
+                  { clave: 'TaxRate', titulo: 'Impuesto' },
+                  { clave: 'TaxAmount', titulo: 'Monto impuesto' },
+                  { clave: 'ExtendedPrice', titulo: 'Total línea' }
+                ]}
+                filas={detalle.lineas || []}
+              />
+            </div>
           </div>
         </div>
       )}
 
       {modoFormulario && (
         <div className="fondo" onClick={() => setModoFormulario(null)}>
-          <form
-            className="ventana formulario"
-            onSubmit={guardar}
-            onClick={evento => evento.stopPropagation()}
-          >
-            <button type="button" onClick={() => setModoFormulario(null)}>
-              Cerrar
-            </button>
-
+          <form className="ventana formulario" onSubmit={guardar} onClick={e => e.stopPropagation()}>
+            <button type="button" className="btn-cerrar" onClick={() => setModoFormulario(null)} aria-label="Cerrar">✕</button>
             <h2>{modoFormulario === 'nuevo' ? 'Nueva venta' : 'Editar venta'}</h2>
 
             <label>

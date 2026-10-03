@@ -186,40 +186,46 @@ export default function Productos() {
   const productosVisibles = productos.slice(inicio, inicio + POR_PAGINA);
 
   return (
-    <section>
-      <div className="encabezado-modulo">
-        <h1>Productos</h1>
-        <button type="button" onClick={abrirNuevo}>Nuevo producto</button>
+    <section className="modulo">
+      <div className="modulo-header">
+        <div className="modulo-header-texto">
+          <p className="modulo-eyebrow">Inventario y Almacén</p>
+          <h1 className="modulo-titulo">Productos</h1>
+          <span className="modulo-contador">
+            {productos.length} {productos.length === 1 ? 'resultado' : 'resultados'}
+          </span>
+        </div>
+        <div className="modulo-acciones">
+          <button type="button" className="btn btn-primario" onClick={abrirNuevo}>
+            + Nuevo producto
+          </button>
+        </div>
       </div>
 
       <div className="barra-filtros">
-        <Filtros
-          campos={campos}
-          valores={filtros}
-          onCambio={cambiarFiltro}
-        />
-
-        <button type="button" onClick={restaurarFiltros}>
+        <Filtros campos={campos} valores={filtros} onCambio={cambiarFiltro} />
+        <button type="button" className="btn btn-fantasma" onClick={restaurarFiltros}>
           Restaurar filtros
         </button>
       </div>
 
-      {error && <p className="mensaje-error">{error}</p>}
-      {mensaje && <p className="mensaje-exito">{mensaje}</p>}
+      {error && <p className="mensaje mensaje-error">{error}</p>}
+      {mensaje && <p className="mensaje mensaje-exito">{mensaje}</p>}
 
-      <p>{productos.length} resultados</p>
+      <div className="tabla-wrapper">
+        <Tabla
+          columnas={columnas}
+          filas={productosVisibles}
+          onFila={verDetalle}
+          acciones={fila => (
+            <div className="acciones-fila">
+              <button type="button" onClick={e => { e.stopPropagation(); abrirEdicion(fila); }}>Editar</button>
+              <button type="button" onClick={e => { e.stopPropagation(); eliminar(fila); }}>Eliminar</button>
+            </div>
+          )}
+        />
+      </div>
 
-      <Tabla
-        columnas={columnas}
-        filas={productosVisibles}
-        onFila={verDetalle}
-        acciones={fila => (
-          <div className="acciones-fila">
-            <button type="button" onClick={evento => { evento.stopPropagation(); abrirEdicion(fila); }}>Editar</button>
-            <button type="button" onClick={evento => { evento.stopPropagation(); eliminar(fila); }}>Eliminar</button>
-          </div>
-        )}
-      />
       <Paginacion
         total={productos.length}
         pagina={pagina}
@@ -235,8 +241,8 @@ export default function Productos() {
 
       {modoFormulario && (
         <div className="fondo" onClick={() => setModoFormulario(null)}>
-          <form className="ventana formulario" onSubmit={guardar} onClick={evento => evento.stopPropagation()}>
-            <button type="button" onClick={() => setModoFormulario(null)}>Cerrar</button>
+          <form className="ventana formulario" onSubmit={guardar} onClick={e => e.stopPropagation()}>
+            <button type="button" className="btn-cerrar" onClick={() => setModoFormulario(null)} aria-label="Cerrar">✕</button>
             <h2>{modoFormulario === 'nuevo' ? 'Nuevo producto' : 'Editar producto'}</h2>
             <label>Nombre<input name="StockItemName" value={formulario.StockItemName} onChange={cambiarFormulario} required /></label>
             <label>Proveedor<input name="SupplierID" type="number" value={formulario.SupplierID} onChange={cambiarFormulario} required /></label>
@@ -255,7 +261,9 @@ export default function Productos() {
             <label>Palabras clave<textarea name="SearchDetails" value={formulario.SearchDetails} onChange={cambiarFormulario} /></label>
             <label>Ubicación<input name="BinLocation" value={formulario.BinLocation} onChange={cambiarFormulario} /></label>
             <label>Última edición por<input name="LastEditedBy" type="number" value={formulario.LastEditedBy} onChange={cambiarFormulario} required /></label>
-            <button type="submit" disabled={guardando}>{guardando ? 'Guardando...' : 'Guardar'}</button>
+            <button type="submit" disabled={guardando}>
+              {guardando ? 'Guardando...' : 'Guardar'}
+            </button>
           </form>
         </div>
       )}

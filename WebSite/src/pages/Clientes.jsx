@@ -4,6 +4,7 @@ import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
 import Detalle from '../components/Detalle';
 import Paginacion from '../components/Paginacion';
+import Mapa from '../components/Mapa';
 
 const POR_PAGINA = 10;
 
@@ -161,43 +162,101 @@ export default function Clientes() {
   const clientesVisibles = clientes.slice(inicio, inicio + POR_PAGINA);
 
   return (
-    <div>
-      <div className="encabezado-modulo">
-        <h1>Clientes</h1>
-        <button type="button" onClick={abrirNuevo}>Nuevo cliente</button>
+    <section className="modulo">
+      <div className="modulo-header">
+        <div className="modulo-header-texto">
+          <p className="modulo-eyebrow">Gestión Comercial</p>
+          <h1 className="modulo-titulo">Clientes</h1>
+          <span className="modulo-contador">
+            {clientes.length} {clientes.length === 1 ? 'resultado' : 'resultados'}
+          </span>
+        </div>
+        <div className="modulo-acciones">
+          <button type="button" className="btn btn-primario" onClick={abrirNuevo}>
+            + Nuevo cliente
+          </button>
+        </div>
       </div>
-      <Filtros campos={campos} valores={filtros} onCambio={cambiar} />
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {mensaje && <p className="mensaje-exito">{mensaje}</p>}
-      <p>{clientes.length} resultados</p>
-      <Tabla
-        columnas={columnas}
-        filas={clientesVisibles}
-        onFila={verDetalle}
-        acciones={fila => (
-          <div className="acciones-fila">
-            <button type="button" onClick={evento => { evento.stopPropagation(); abrirEdicion(fila); }}>
-              Editar
-            </button>
-            <button type="button" onClick={evento => { evento.stopPropagation(); eliminar(fila); }}>
-              Eliminar
-            </button>
-          </div>
-        )}
-      />
+
+      <div className="barra-filtros">
+        <Filtros campos={campos} valores={filtros} onCambio={cambiar} />
+        <button type="button" className="btn btn-fantasma" onClick={() => { setFiltros({ apodo: '' }); setPagina(1); }}>
+          Restaurar filtros
+        </button>
+      </div>
+
+      {error && <p className="mensaje mensaje-error">{error}</p>}
+      {mensaje && <p className="mensaje mensaje-exito">{mensaje}</p>}
+
+      <div className="tabla-wrapper">
+        <Tabla
+          columnas={columnas}
+          filas={clientesVisibles}
+          onFila={verDetalle}
+          acciones={fila => (
+            <div className="acciones-fila">
+              <button type="button" onClick={evento => { evento.stopPropagation(); abrirEdicion(fila); }}>
+                Editar
+              </button>
+              <button type="button" onClick={evento => { evento.stopPropagation(); eliminar(fila); }}>
+                Eliminar
+              </button>
+            </div>
+          )}
+        />
+      </div>
+
       <Paginacion
         total={clientes.length}
         pagina={pagina}
         porPagina={POR_PAGINA}
         onCambio={setPagina}
       />
-      <Detalle titulo="Detalle del cliente" datos={detalle}
-               onCerrar={() => setDetalle(null)} />
+
+      {detalle && (
+  <div className="fondo" onClick={() => setDetalle(null)}>
+    <div className="ventana" onClick={e => e.stopPropagation()}>
+      <button
+        type="button"
+        className="btn-cerrar"
+        onClick={() => setDetalle(null)}
+        aria-label="Cerrar"
+      >
+        ✕
+      </button>
+
+      <h2>Detalle del cliente</h2>
+
+      <dl>
+        {Object.entries(detalle)
+          .filter(([clave]) => !['DeliveryLatitude', 'DeliveryLongitude'].includes(clave))
+          .map(([clave, valor]) => (
+            <div key={clave}>
+              <dt>{clave.replaceAll('_', ' ')}</dt>
+              <dd>
+                {valor === null || valor === undefined || valor === ''
+                  ? '—'
+                  : String(valor)}
+              </dd>
+            </div>
+          ))}
+      </dl>
+
+      <h2>Ubicación de entrega</h2>
+      <Mapa
+        latitud={detalle.DeliveryLatitude}
+        longitud={detalle.DeliveryLongitude}
+        titulo={detalle.Nombre || detalle.CustomerName}
+        subtitulo={detalle.DeliveryAddressLine1}
+      />
+    </div>
+  </div>
+)}
 
       {modoFormulario && (
         <div className="fondo" onClick={() => setModoFormulario(null)}>
           <form className="ventana formulario" onSubmit={guardar} onClick={evento => evento.stopPropagation()}>
-            <button type="button" onClick={() => setModoFormulario(null)}>Cerrar</button>
+            <button type="button" className="btn-cerrar" onClick={() => setModoFormulario(null)} aria-label="Cerrar">✕</button>
             <h2>{modoFormulario === 'nuevo' ? 'Nuevo cliente' : 'Editar cliente'}</h2>
 
             <label>Nombre<input name="CustomerName" value={formulario.CustomerName} onChange={cambiarFormulario} required /></label>
@@ -213,11 +272,19 @@ export default function Clientes() {
             <label>Código postal<input name="PostalPostalCode" value={formulario.PostalPostalCode} onChange={cambiarFormulario} required /></label>
             <label>Días de pago<input name="PaymentDays" type="number" min="0" value={formulario.PaymentDays} onChange={cambiarFormulario} required /></label>
             <label>Descuento estándar (%)<input name="StandardDiscountPercentage" type="number" min="0" step="0.001" value={formulario.StandardDiscountPercentage} onChange={cambiarFormulario} required /></label>
-            <label><span>Enviar estado de cuenta</span><input name="IsStatementSent" type="checkbox" checked={formulario.IsStatementSent} onChange={evento => setFormulario(anterior => ({ ...anterior, IsStatementSent: evento.target.checked }))} /></label>
-            <label><span>Cliente en retención de crédito</span><input name="IsOnCreditHold" type="checkbox" checked={formulario.IsOnCreditHold} onChange={evento => setFormulario(anterior => ({ ...anterior, IsOnCreditHold: evento.target.checked }))} /></label>
+            <label>
+              <input name="IsStatementSent" type="checkbox" checked={formulario.IsStatementSent}
+                onChange={e => setFormulario(a => ({ ...a, IsStatementSent: e.target.checked }))} />
+              <span>Enviar estado de cuenta</span>
+            </label>
+            <label>
+              <input name="IsOnCreditHold" type="checkbox" checked={formulario.IsOnCreditHold}
+                onChange={e => setFormulario(a => ({ ...a, IsOnCreditHold: e.target.checked }))} />
+              <span>Cliente en retención de crédito</span>
+            </label>
             <label>Teléfono<input name="PhoneNumber" value={formulario.PhoneNumber} onChange={cambiarFormulario} required /></label>
             <label>Fax<input name="FaxNumber" value={formulario.FaxNumber} onChange={cambiarFormulario} required /></label>
-            <label>Sitio web<input name="WebsiteURL" type="url" value={formulario.WebsiteURL} onChange={cambiarFormulario} required /></label>
+            <label className="formulario-ancho">Sitio web<input name="WebsiteURL" type="url" value={formulario.WebsiteURL} onChange={cambiarFormulario} required /></label>
             <label>Dirección de entrega<input name="DeliveryAddressLine1" value={formulario.DeliveryAddressLine1} onChange={cambiarFormulario} required /></label>
             <label>Dirección de entrega adicional<input name="DeliveryAddressLine2" value={formulario.DeliveryAddressLine2} onChange={cambiarFormulario} /></label>
             <label>Dirección postal<input name="PostalAddressLine1" value={formulario.PostalAddressLine1} onChange={cambiarFormulario} required /></label>
@@ -232,6 +299,6 @@ export default function Clientes() {
           </form>
         </div>
       )}
-    </div>
+    </section>
   );
 }
