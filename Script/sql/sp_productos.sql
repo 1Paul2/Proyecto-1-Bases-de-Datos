@@ -39,9 +39,11 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE SP_GetStockItemDetails
-    @StockItemID INT
+    @StockItemName NVARCHAR(100) = NULL,
+    @StockGroupID INT
 AS
 BEGIN
+    SET NOCOUNT ON;
     SELECT SI.StockItemID as StockItemID,
     SI.StockItemName as StockItemName,
     S.SupplierID as SupplierID,
@@ -70,7 +72,13 @@ BEGIN
     INNER JOIN Syn_StockItemHoldings SIH ON SIH.StockItemID = SI.StockItemID
     INNER JOIN Syn_PackageTypes PT ON PT.PackageTypeID = SI.UnitPackageID
     INNER JOIN Syn_PackageTypes PT2 ON PT2.PackageTypeID = SI.OuterPackageID
-
-    WHERE SI.StockItemID = @StockItemID
+    WHERE (@StockItemName IS NULL OR SI.StockItemName LIKE '%' + @StockItemName + '%')
+      AND (@StockGroupID IS NULL OR EXISTS (
+            SELECT 1
+            FROM Syn_StockItemStockGroups SIG
+            WHERE SIG.StockItemID = SI.StockItemID AND SIG.StockGroupID = @StockGroupID
+            )
+        )
+    ORDER BY SI.StockItemName ASC
 END;
 GO
