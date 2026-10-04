@@ -10,15 +10,15 @@ BEGIN
         SC.CustomerName AS Nombre,
         SCC.CustomerCategoryName AS Categoria,
         ADM.DeliveryMethodName AS Metodo_de_entrega
-    FROM Sales.Customers SC
-    INNER JOIN Sales.CustomerCategories SCC ON SCC.CustomerCategoryID = SC.CustomerCategoryID
-    INNER JOIN Application.DeliveryMethods ADM ON ADM.DeliveryMethodID = SC.DeliveryMethodID
+    FROM Syn_Customers SC
+    INNER JOIN Syn_CustomerCategories SCC ON SCC.CustomerCategoryID = SC.CustomerCategoryID
+    INNER JOIN Syn_DeliveryMethods ADM ON ADM.DeliveryMethodID = SC.DeliveryMethodID
     WHERE SC.CustomerName LIKE '%' + @Apodo + '%'
     ORDER BY SC.CustomerName ASC;
 END;
 GO
 
-Create OR ALTER PROCEDURE SP_CLIENTES
+CREATE OR ALTER PROCEDURE SP_CLIENTES
     @Nombre VARCHAR(100)
 AS
 BEGIN 
@@ -66,25 +66,25 @@ BEGIN
     SC.DeliveryLocation.Long AS Longitud,
     SC.DeliveryLocation.Lat AS DeliveryLatitude,
     SC.DeliveryLocation.Long AS DeliveryLongitude
-        from Sales.Customers SC
+        FROM Syn_Customers SC
 
-        INNER JOIN Sales.CustomerCategories SCC on SCC.CustomerCategoryID = SC.CustomerCategoryID
-        LEFT JOIN Sales.BuyingGroups SB ON SB.BuyingGroupID = SC.BuyingGroupID
-        INNER JOIN Application.People AP1 ON AP1.PersonID = SC.PrimaryContactPersonID
-        LEFT JOIN Application.People AP2 ON AP2.PersonID = SC.AlternateContactPersonID --No todos tienen un alternativo
-        LEFT JOIN Sales.Customers BillTo ON BillTo.CustomerID = SC.BillToCustomerID
-        INNER JOIN Application.DeliveryMethods ADM on ADM.DeliveryMethodID = SC.DeliveryMethodID
-        LEFT JOIN Application.Cities AC ON AC.CityID = SC.DeliveryCityID
+        INNER JOIN Syn_CustomerCategories SCC ON SCC.CustomerCategoryID = SC.CustomerCategoryID
+        LEFT JOIN Syn_BuyingGroups SB ON SB.BuyingGroupID = SC.BuyingGroupID
+        INNER JOIN Syn_People AP1 ON AP1.PersonID = SC.PrimaryContactPersonID
+        LEFT JOIN Syn_People AP2 ON AP2.PersonID = SC.AlternateContactPersonID
+        LEFT JOIN Syn_Customers BillTo ON BillTo.CustomerID = SC.BillToCustomerID
+        INNER JOIN Syn_DeliveryMethods ADM ON ADM.DeliveryMethodID = SC.DeliveryMethodID
+        LEFT JOIN Syn_Cities AC ON AC.CityID = SC.DeliveryCityID
 
     WHERE SC.CustomerName = @Nombre
-    GROUP BY SC.CustomerID,SC.CustomerCategoryID,SC.BuyingGroupID,SC.PrimaryContactPersonID,
-        SC.AlternateContactPersonID,SC.BillToCustomerID,SC.DeliveryMethodID,SC.DeliveryCityID,
+    GROUP BY SC.CustomerID, SC.CustomerCategoryID, SC.BuyingGroupID, SC.PrimaryContactPersonID,
+        SC.AlternateContactPersonID, SC.BillToCustomerID, SC.DeliveryMethodID, SC.DeliveryCityID,
         SC.PostalCityID,
-        SC.CustomerName,SCC.CustomerCategoryName,SB.BuyingGroupName,AP1.FullName ,
-        AP2.FullName,BillTo.CustomerName,ADM.DeliveryMethodName, AC.CityName,SC.PostalPostalCode,
+        SC.CustomerName, SCC.CustomerCategoryName, SB.BuyingGroupName, AP1.FullName,
+        AP2.FullName, BillTo.CustomerName, ADM.DeliveryMethodName, AC.CityName, SC.PostalPostalCode,
         SC.DeliveryPostalCode,
-        SC.PhoneNumber,SC.FaxNumber,SC.PaymentDays,SC.StandardDiscountPercentage,SC.IsStatementSent,SC.IsOnCreditHold,SC.WebsiteURL,SC.DeliveryAddressLine1,
-        SC.DeliveryAddressLine2,SC.PostalAddressLine1,SC.PostalAddressLine2,SC.AccountOpenedDate,
+        SC.PhoneNumber, SC.FaxNumber, SC.PaymentDays, SC.StandardDiscountPercentage, SC.IsStatementSent, SC.IsOnCreditHold, SC.WebsiteURL, SC.DeliveryAddressLine1,
+        SC.DeliveryAddressLine2, SC.PostalAddressLine1, SC.PostalAddressLine2, SC.AccountOpenedDate,
         SC.DeliveryLocation.Lat,
         SC.DeliveryLocation.Long 
     ORDER BY SC.CustomerName ASC

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { enviar, pedir } from '../Api';
 import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
-import Detalle from '../components/Detalle';
 import Paginacion from '../components/Paginacion';
+import Mapa from '../components/Mapa';
 
 const POR_PAGINA = 10;
 
@@ -11,6 +11,29 @@ const columnas = [
   { clave: 'SupplierName', titulo: 'Proveedor' },
   { clave: 'SupplierCategoryName', titulo: 'Categoría' },
   { clave: 'DeliveryMethodName', titulo: 'Método de entrega' }
+];
+
+// [etiqueta que se muestra, columna que devuelve el SP del detalle]
+const camposDetalle = [
+  ['Código del proveedor', 'SupplierReference'],
+  ['Nombre', 'SupplierName'],
+  ['Categoría', 'SupplierCategoryName'],
+  ['Contacto primario', 'PrimaryContactName'],
+  ['Contacto alternativo', 'AlternateContactName'],
+  ['Método de entrega', 'DeliveryMethodName'],
+  ['Ciudad de entrega', 'DeliveryCityName'],
+  ['Código postal de entrega', 'DeliveryPostalCode'],
+  ['Teléfono', 'PhoneNumber'],
+  ['Fax', 'FaxNumber'],
+  ['Sitio web', 'WebsiteURL'],
+  ['Dirección de entrega 1', 'DeliveryAddressLine1'],
+  ['Dirección de entrega 2', 'DeliveryAddressLine2'],
+  ['Dirección postal 1', 'PostalAddressLine1'],
+  ['Dirección postal 2', 'PostalAddressLine2'],
+  ['Nombre del banco', 'BankAccountBranch'],
+  ['Titular de la cuenta', 'BankAccountName'],
+  ['Número de cuenta corriente', 'BankAccountNumber'],
+  ['Días de gracia para pagar', 'PaymentDays']
 ];
 
 const filtrosIniciales = {
@@ -244,11 +267,49 @@ export default function Proveedores() {
         onCambio={setPagina}
       />
 
-      <Detalle
-        titulo="Detalle del proveedor"
-        datos={detalle}
-        onCerrar={() => setDetalle(null)}
-      />
+      {detalle && (
+        <div className="fondo" onClick={() => setDetalle(null)}>
+          <div className="ventana" onClick={e => e.stopPropagation()}>
+            <button
+              type="button"
+              className="btn-cerrar"
+              onClick={() => setDetalle(null)}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+
+            <h2>Detalle del proveedor</h2>
+
+            <dl>
+              {camposDetalle.map(([etiqueta, clave]) => {
+                const valor = detalle[clave];
+                const vacio = valor === null || valor === undefined || valor === '';
+                return (
+                  <div key={clave}>
+                    <dt>{etiqueta}</dt>
+                    <dd>
+                      {vacio
+                        ? '—'
+                        : clave === 'WebsiteURL'
+                          ? <a href={valor} target="_blank" rel="noreferrer">{valor}</a>
+                          : String(valor)}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+
+            <h2>Ubicación de entrega</h2>
+            <Mapa
+              latitud={detalle.DeliveryLatitude ?? detalle.Latitud}
+              longitud={detalle.DeliveryLongitude ?? detalle.Longitud}
+              titulo={detalle.SupplierName}
+              subtitulo={detalle.DeliveryAddressLine1}
+            />
+          </div>
+        </div>
+      )}
 
       {modoFormulario && (
         <div className="fondo" onClick={() => setModoFormulario(null)}>

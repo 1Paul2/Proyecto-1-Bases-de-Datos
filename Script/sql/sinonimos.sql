@@ -20,6 +20,8 @@ DROP SYNONYM IF EXISTS Syn_Cities;
 CREATE SYNONYM Syn_Cities FOR Application.Cities;
 DROP SYNONYM IF EXISTS Syn_StateProvinces;
 CREATE SYNONYM Syn_StateProvinces FOR Application.StateProvinces;
+DROP SYNONYM IF EXISTS Syn_Countries;
+CREATE SYNONYM Syn_Countries FOR Application.Countries;
 
 -- Warehouse
 DROP SYNONYM IF EXISTS Syn_StockItems;
@@ -44,4 +46,6 @@ DROP SYNONYM IF EXISTS Syn_Customers;
 CREATE SYNONYM Syn_Customers FOR Sales.Customers;
 DROP SYNONYM IF EXISTS Syn_CustomerCategories;
 CREATE SYNONYM Syn_CustomerCategories FOR Sales.CustomerCategories;
+DROP SYNONYM IF EXISTS Syn_BuyingGroups;
+CREATE SYNONYM Syn_BuyingGroups FOR Sales.BuyingGroups;
 GO

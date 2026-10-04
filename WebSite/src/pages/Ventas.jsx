@@ -3,6 +3,7 @@ import { enviar, pedir } from '../Api';
 import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
 import Paginacion from '../components/Paginacion';
+import Factura from '../components/Factura';
 
 const POR_PAGINA = 10;
 
@@ -30,17 +31,6 @@ const formularioInicial = {
   SalespersonPersonID: '',
   InvoiceDate: new Date().toISOString().slice(0, 10),
   DeliveryInstructions: ''
-};
-
-const ETIQUETAS_ENCABEZADO = {
-  InvoiceID: 'Número de factura',
-  CustomerName: 'Cliente',
-  DeliveryMethod: 'Método de entrega',
-  CustomerPurchaseOrderNumber: 'Número de orden de compra',
-  ContactPerson: 'Persona de contacto',
-  Salesperson: 'Nombre del vendedor',
-  InvoiceDate: 'Fecha de la factura',
-  DeliveryInstructions: 'Instrucciones de entrega'
 };
 
 export default function Ventas() {
@@ -269,35 +259,15 @@ export default function Ventas() {
 
       {detalle && (
         <div className="fondo" onClick={() => setDetalle(null)}>
-          <div className="ventana" onClick={e => e.stopPropagation()}>
+          <div className="ventana ventana-factura" onClick={e => e.stopPropagation()}>
             <button type="button" className="btn-cerrar" onClick={() => setDetalle(null)} aria-label="Cerrar">✕</button>
 
-            <h2>Encabezado de factura</h2>
-            <dl>
-              {Object.entries(detalle.encabezado)
-                .filter(([clave]) => !['CustomerID', 'DeliveryMethodID', 'ContactPersonID', 'SalespersonPersonID'].includes(clave))
-                .map(([clave, valor]) => (
-                  <div key={clave}>
-                    <dt>{ETIQUETAS_ENCABEZADO[clave] || clave.replaceAll('_', ' ')}</dt>
-                    <dd>{clave === 'InvoiceDate' && valor ? String(valor).slice(0, 10) : (valor ?? '—')}</dd>
-                  </div>
-                ))}
-            </dl>
-
-            <h2>Detalle de factura</h2>
-            <div className="tabla-wrapper">
-              <Tabla
-                columnas={[
-                  { clave: 'StockItemName', titulo: 'Producto' },
-                  { clave: 'Quantity', titulo: 'Cantidad' },
-                  { clave: 'UnitPrice', titulo: 'Precio unitario' },
-                  { clave: 'TaxRate', titulo: 'Impuesto' },
-                  { clave: 'TaxAmount', titulo: 'Monto impuesto' },
-                  { clave: 'ExtendedPrice', titulo: 'Total línea' }
-                ]}
-                filas={detalle.lineas || []}
-              />
-            </div>
+            <Factura
+              encabezado={detalle.encabezado}
+              lineas={detalle.lineas || []}
+              // Cuando tengas la navegación entre módulos, pasa aquí:
+              // onVerCliente={h => ...}  onVerProducto={l => ...}
+            />
           </div>
         </div>
       )}

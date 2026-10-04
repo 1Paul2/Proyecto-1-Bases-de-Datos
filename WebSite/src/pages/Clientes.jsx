@@ -16,6 +16,27 @@ const columnas = [
 
 const campos = [{ nombre: 'apodo', etiqueta: 'Nombre' }];
 
+
+const camposDetalle = [
+  ['Nombre', 'Nombre'],
+  ['Categoría', 'Categoría'],
+  ['Grupo de compra', 'Grupo_de_compra'],
+  ['Contacto primario', 'Contacto_Primario'],
+  ['Contacto alternativo', 'Contacto_Secundario'],
+  ['Cliente por facturar', 'Cliente_por_facturar'],
+  ['Método de entrega', 'Métodos_de_entrega'],
+  ['Ciudad de entrega', 'Ciudad_de_entrega'],
+  ['Código postal', 'Código_postal'],
+  ['Teléfono', 'Telefono'],
+  ['Fax', 'Fax'],
+  ['Días de gracia para pagar', 'Días_de_gracia_para_pagar'],
+  ['Sitio web', 'Sitio_web'],
+  ['Dirección de entrega 1', 'Direccion_Entrega_1'],
+  ['Dirección de entrega 2', 'Direccion_Entrega_2'],
+  ['Dirección postal 1', 'Direccion_Postal_1'],
+  ['Dirección postal 2', 'Direccion_Postal_2']
+];
+
 const formularioInicial = {
   CustomerName: '', CustomerCategoryID: '', PrimaryContactPersonID: '',
   AlternateContactPersonID: '', BillToCustomerID: '', BuyingGroupID: '',
@@ -85,7 +106,7 @@ export default function Clientes() {
         DeliveryAddressLine2: datos.DeliveryAddressLine2 ?? '',
         PostalAddressLine1: datos.PostalAddressLine1 ?? '',
         PostalAddressLine2: datos.PostalAddressLine2 ?? '',
-        AccountOpenedDate: datos.AccountOpenedDate ?? '',
+        AccountOpenedDate: datos.AccountOpenedDate?.slice(0, 10) ?? '',
         DeliveryLatitude: datos.DeliveryLatitude ?? '',
         DeliveryLongitude: datos.DeliveryLongitude ?? ''
       });
@@ -214,44 +235,48 @@ export default function Clientes() {
       />
 
       {detalle && (
-  <div className="fondo" onClick={() => setDetalle(null)}>
-    <div className="ventana" onClick={e => e.stopPropagation()}>
-      <button
-        type="button"
-        className="btn-cerrar"
-        onClick={() => setDetalle(null)}
-        aria-label="Cerrar"
-      >
-        ✕
-      </button>
+        <div className="fondo" onClick={() => setDetalle(null)}>
+          <div className="ventana" onClick={e => e.stopPropagation()}>
+            <button
+              type="button"
+              className="btn-cerrar"
+              onClick={() => setDetalle(null)}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
 
-      <h2>Detalle del cliente</h2>
+            <h2>Detalle del cliente</h2>
 
-      <dl>
-        {Object.entries(detalle)
-          .filter(([clave]) => !['DeliveryLatitude', 'DeliveryLongitude'].includes(clave))
-          .map(([clave, valor]) => (
-            <div key={clave}>
-              <dt>{clave.replaceAll('_', ' ')}</dt>
-              <dd>
-                {valor === null || valor === undefined || valor === ''
-                  ? '—'
-                  : String(valor)}
-              </dd>
-            </div>
-          ))}
-      </dl>
+            <dl>
+              {camposDetalle.map(([etiqueta, clave]) => {
+                const valor = detalle[clave];
+                const vacio = valor === null || valor === undefined || valor === '';
+                return (
+                  <div key={clave}>
+                    <dt>{etiqueta}</dt>
+                    <dd>
+                      {vacio
+                        ? '—'
+                        : clave === 'Sitio_web'
+                          ? <a href={valor} target="_blank" rel="noreferrer">{valor}</a>
+                          : String(valor)}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
 
-      <h2>Ubicación de entrega</h2>
-        <Mapa
-          latitud={detalle.Latitud}
-          longitud={detalle.Longitud}
-          titulo={detalle.Nombre || detalle.CustomerName}
-          subtitulo={detalle.DeliveryAddressLine1}
-        />
-    </div>
-  </div>
-)}
+            <h2>Ubicación de entrega</h2>
+            <Mapa
+              latitud={detalle.Latitud}
+              longitud={detalle.Longitud}
+              titulo={detalle.Nombre || detalle.CustomerName}
+              subtitulo={detalle.DeliveryAddressLine1}
+            />
+          </div>
+        </div>
+      )}
 
       {modoFormulario && (
         <div className="fondo" onClick={() => setModoFormulario(null)}>

@@ -18,16 +18,22 @@ AS
 BEGIN
     SELECT SI.StockItemID as StockItemID,
     SI.StockItemName as StockItemName,
-    STRING_AGG(SG.StockGroupName, ', ') as StockGroupNames,
+    (
+        SELECT STRING_AGG(SG2.StockGroupName, ', ')
+        FROM Syn_StockItemStockGroups SIG2
+        INNER JOIN Syn_StockGroups SG2 ON SG2.StockGroupID = SIG2.StockGroupID
+        WHERE SIG2.StockItemID = SI.StockItemID
+    ) as StockGroupNames,
     SIH.QuantityOnHand as QuantityOnHand
     FROM Syn_StockItems SI
-
-    LEFT JOIN Syn_StockItemStockGroups SIG ON SIG.StockItemID = SI.StockItemID
-    LEFT JOIN Syn_StockGroups SG ON SG.StockGroupID = SIG.StockGroupID
     INNER JOIN Syn_StockItemHoldings SIH ON SIH.StockItemID = SI.StockItemID
     WHERE (@Name IS NULL OR SI.StockItemName LIKE '%' + @Name + '%')
-        AND (@StockGroupID IS NULL OR SG.StockGroupID = @StockGroupID)
-    GROUP BY SI.StockItemID, SI.StockItemName, SIH.QuantityOnHand
+        AND (@StockGroupID IS NULL OR EXISTS (
+            SELECT 1
+            FROM Syn_StockItemStockGroups SIG
+            WHERE SIG.StockItemID = SI.StockItemID
+              AND SIG.StockGroupID = @StockGroupID
+        ))
     ORDER BY SI.StockItemName ASC
 END;
 GO

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { enviar, pedir } from '../Api';
 import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
-import Detalle from '../components/Detalle';
 import Paginacion from '../components/Paginacion';
 
 const POR_PAGINA = 10;
@@ -13,6 +12,36 @@ const columnas = [
   { clave: 'QuantityOnHand', titulo: 'Cantidad disponible' }
 ];
 
+// [etiqueta que se muestra, columna que devuelve SP_GetStockItemDetails]
+const camposDetalle = [
+  ['Nombre del producto', 'StockItemName'],
+  ['Proveedor', 'SupplierName'],
+  ['Color', 'ColorName'],
+  ['Unidad de empaquetamiento', 'UnitPackageTypeName'],
+  ['Empaquetamiento', 'OuterPackageTypeName'],
+  ['Cantidad de empaquetamiento', 'QuantityPerOuter'],
+  ['Marca', 'Brand'],
+  ['Tallas / tamaño', 'Size'],
+  ['Impuesto', 'TaxRate'],
+  ['Precio unitario', 'UnitPrice'],
+  ['Precio de venta recomendado', 'RecommendedRetailPrice'],
+  ['Peso', 'TypicalWeightPerUnit'],
+  ['Palabras clave', 'SearchDetails'],
+  ['Cantidad disponible', 'QuantityOnHand'],
+  ['Ubicación', 'BinLocation']
+];
+
+const dinero = v =>
+  Number(v).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Solo presentación: no se calcula ni agrupa nada
+const FORMATOS = {
+  TaxRate: v => `${Number(v)} %`,
+  UnitPrice: dinero,
+  RecommendedRetailPrice: dinero,
+  TypicalWeightPerUnit: v => `${Number(v)} kg`
+};
+
 const filtrosIniciales = {
   name: '',
   grupo: ''
@@ -22,7 +51,9 @@ const formularioInicial = {
   StockItemName: '', SupplierID: '', LeadTimeDays: 1, ColorID: '', UnitPackageID: '',
   OuterPackageID: '', QuantityPerOuter: 1, Brand: '', Size: '', TaxRate: 0, IsChillerStock: false,
   UnitPrice: '', RecommendedRetailPrice: '', TypicalWeightPerUnit: '',
-  SearchDetails: '', BinLocation: ''
+  SearchDetails: '', BinLocation: '',
+  // Dato de auditoría: no se pide en pantalla. Lo ideal es que lo asigne la API.
+  LastEditedBy: 1
 };
 
 export default function Productos() {
@@ -100,7 +131,8 @@ export default function Productos() {
         UnitPackageID: datos.UnitPackageID ?? '',
         OuterPackageID: datos.OuterPackageID ?? '',
         QuantityPerOuter: datos.QuantityPerOuter ?? 1,
-        Brand: datos.Brand ?? '', Size: datos.Size ?? '',
+        Brand: datos.Brand ?? '',
+        Size: datos.Size ?? '',
         TaxRate: datos.TaxRate ?? 0,
         UnitPrice: datos.UnitPrice ?? '',
         IsChillerStock: datos.IsChillerStock ?? false,
@@ -233,11 +265,36 @@ export default function Productos() {
         onCambio={setPagina}
       />
 
-      <Detalle
-        titulo="Detalle del producto"
-        datos={detalle}
-        onCerrar={() => setDetalle(null)}
-      />
+      {detalle && (
+        <div className="fondo" onClick={() => setDetalle(null)}>
+          <div className="ventana" onClick={e => e.stopPropagation()}>
+            <button
+              type="button"
+              className="btn-cerrar"
+              onClick={() => setDetalle(null)}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+
+            <h2>Detalle del producto</h2>
+
+            <dl>
+              {camposDetalle.map(([etiqueta, clave]) => {
+                const valor = detalle[clave];
+                const vacio = valor === null || valor === undefined || valor === '';
+                const formatear = FORMATOS[clave];
+                return (
+                  <div key={clave}>
+                    <dt>{etiqueta}</dt>
+                    <dd>{vacio ? '—' : formatear ? formatear(valor) : String(valor)}</dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </div>
+        </div>
+      )}
 
       {modoFormulario && (
         <div className="fondo" onClick={() => setModoFormulario(null)}>
@@ -260,7 +317,6 @@ export default function Productos() {
             <label>Peso típico<input name="TypicalWeightPerUnit" type="number" step="0.01" min="0" value={formulario.TypicalWeightPerUnit} onChange={cambiarFormulario} /></label>
             <label>Palabras clave<textarea name="SearchDetails" value={formulario.SearchDetails} onChange={cambiarFormulario} /></label>
             <label>Ubicación<input name="BinLocation" value={formulario.BinLocation} onChange={cambiarFormulario} /></label>
-            <label>Última edición por<input name="LastEditedBy" type="number" value={formulario.LastEditedBy} onChange={cambiarFormulario} required /></label>
             <button type="submit" disabled={guardando}>
               {guardando ? 'Guardando...' : 'Guardar'}
             </button>

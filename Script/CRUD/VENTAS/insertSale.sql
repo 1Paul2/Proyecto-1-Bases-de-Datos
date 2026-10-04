@@ -15,7 +15,6 @@ BEGIN
 
     BEGIN TRY
         BEGIN TRANSACTION;
-        -- Harto ya de SQL
         DECLARE @BillToCustomerID INT;
         SELECT @BillToCustomerID = BillToCustomerID
         FROM Syn_Customers
