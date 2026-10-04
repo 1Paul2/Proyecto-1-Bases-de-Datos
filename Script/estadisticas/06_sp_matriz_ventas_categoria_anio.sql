@@ -43,7 +43,7 @@ BEGIN
         ) AS Matriz
         ORDER BY Categoria;';
 
-
+    EXEC sp_executesql @sql;
 END;
 GO
 

@@ -5,7 +5,8 @@ CREATE OR ALTER PROCEDURE SP_LISTA_CLIENTES
     @Apodo VARCHAR(100)
 AS
 BEGIN
-    SELECT 
+    SELECT
+        SC.CustomerID AS CustomerID,
         SC.CustomerName AS Nombre,
         SCC.CustomerCategoryName AS Categoria,
         ADM.DeliveryMethodName AS Metodo_de_entrega
@@ -21,7 +22,16 @@ Create OR ALTER PROCEDURE SP_CLIENTES
     @Nombre VARCHAR(100)
 AS
 BEGIN 
-    SELECT SC.CustomerName as Nombre,
+    SELECT SC.CustomerID AS CustomerID,
+    SC.CustomerCategoryID AS CustomerCategoryID,
+    SC.BuyingGroupID AS BuyingGroupID,
+    SC.PrimaryContactPersonID AS PrimaryContactPersonID,
+    SC.AlternateContactPersonID AS AlternateContactPersonID,
+    SC.BillToCustomerID AS BillToCustomerID,
+    SC.DeliveryMethodID AS DeliveryMethodID,
+    SC.DeliveryCityID AS DeliveryCityID,
+    SC.PostalCityID AS PostalCityID,
+    SC.CustomerName as Nombre,
     SCC.CustomerCategoryName as Categoría,
     SB.BuyingGroupName as Grupo_de_compra,
     AP1.FullName as Contacto_Primario,
@@ -38,8 +48,24 @@ BEGIN
     SC.DeliveryAddressLine2 AS Direccion_Entrega_2,
     SC.PostalAddressLine1 AS Direccion_Postal_1,
     SC.PostalAddressLine2 AS Direccion_Postal_2,
+    SC.PostalPostalCode AS PostalPostalCode,
+    SC.DeliveryPostalCode AS DeliveryPostalCode,
+    SC.PhoneNumber AS PhoneNumber,
+    SC.FaxNumber AS FaxNumber,
+    SC.PaymentDays AS PaymentDays,
+    SC.StandardDiscountPercentage AS StandardDiscountPercentage,
+    SC.IsStatementSent AS IsStatementSent,
+    SC.IsOnCreditHold AS IsOnCreditHold,
+    SC.WebsiteURL AS WebsiteURL,
+    SC.DeliveryAddressLine1 AS DeliveryAddressLine1,
+    SC.DeliveryAddressLine2 AS DeliveryAddressLine2,
+    SC.PostalAddressLine1 AS PostalAddressLine1,
+    SC.PostalAddressLine2 AS PostalAddressLine2,
+    SC.AccountOpenedDate AS AccountOpenedDate,
     SC.DeliveryLocation.Lat AS Latitud,
-    SC.DeliveryLocation.Long AS Longitud
+    SC.DeliveryLocation.Long AS Longitud,
+    SC.DeliveryLocation.Lat AS DeliveryLatitude,
+    SC.DeliveryLocation.Long AS DeliveryLongitude
         from Sales.Customers SC
 
         INNER JOIN Sales.CustomerCategories SCC on SCC.CustomerCategoryID = SC.CustomerCategoryID
@@ -51,10 +77,15 @@ BEGIN
         LEFT JOIN Application.Cities AC ON AC.CityID = SC.DeliveryCityID
 
     WHERE SC.CustomerName = @Nombre
-    GROUP BY SC.CustomerName,SCC.CustomerCategoryName,SB.BuyingGroupName,AP1.FullName ,
+    GROUP BY SC.CustomerID,SC.CustomerCategoryID,SC.BuyingGroupID,SC.PrimaryContactPersonID,
+        SC.AlternateContactPersonID,SC.BillToCustomerID,SC.DeliveryMethodID,SC.DeliveryCityID,
+        SC.PostalCityID,
+        SC.CustomerName,SCC.CustomerCategoryName,SB.BuyingGroupName,AP1.FullName ,
         AP2.FullName,BillTo.CustomerName,ADM.DeliveryMethodName, AC.CityName,SC.PostalPostalCode,
-        SC.PhoneNumber,SC.FaxNumber,SC.PaymentDays,SC.WebsiteURL,SC.DeliveryAddressLine1,
-        SC.DeliveryAddressLine2,SC.PostalAddressLine1,SC.PostalAddressLine2,SC.DeliveryLocation.Lat,
+        SC.DeliveryPostalCode,
+        SC.PhoneNumber,SC.FaxNumber,SC.PaymentDays,SC.StandardDiscountPercentage,SC.IsStatementSent,SC.IsOnCreditHold,SC.WebsiteURL,SC.DeliveryAddressLine1,
+        SC.DeliveryAddressLine2,SC.PostalAddressLine1,SC.PostalAddressLine2,SC.AccountOpenedDate,
+        SC.DeliveryLocation.Lat,
         SC.DeliveryLocation.Long 
     ORDER BY SC.CustomerName ASC
 END;

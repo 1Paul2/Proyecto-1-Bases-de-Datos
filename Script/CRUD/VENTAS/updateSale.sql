@@ -8,7 +8,8 @@ CREATE OR ALTER PROCEDURE SP_UpdateSale
     @ContactPersonID INT,
     @SalespersonPersonID INT,
     @InvoiceDate DATE,
-    @DeliveryInstructions NVARCHAR(500)
+    @DeliveryInstructions NVARCHAR(500),
+    @BillToCustomerID INT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -27,7 +28,8 @@ BEGIN
         ContactPersonID = @ContactPersonID,
         SalespersonPersonID = @SalespersonPersonID,
         InvoiceDate = @InvoiceDate,
-        DeliveryInstructions = @DeliveryInstructions
+        DeliveryInstructions = @DeliveryInstructions,
+        BillToCustomerID = @BillToCustomerID
         WHERE InvoiceID = @InvoiceID;
 
         COMMIT TRANSACTION;

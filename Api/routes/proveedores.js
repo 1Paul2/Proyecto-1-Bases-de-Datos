@@ -5,7 +5,7 @@ const { sql, poolPromise } = require('../db');
 const camposProveedor = [
   'SupplierReference', 'SupplierName', 'SupplierCategoryID',
   'PrimaryContactPersonID', 'AlternateContactPersonID', 'DeliveryCityID',
-  'PostalCityID', 'DeliveryPostalCode', 'PostalPostalCode', 'PhoneNumber',
+  'DeliveryMethodID', 'PostalCityID', 'DeliveryPostalCode', 'PostalPostalCode', 'PhoneNumber',
   'FaxNumber', 'WebsiteURL', 'DeliveryAddressLine1', 'PostalAddressLine1',
   'BankAccountBranch', 'BankAccountName', 'BankAccountNumber', 'PaymentDays',
   'LastEditedBy'
@@ -15,9 +15,21 @@ function faltantes(body, campos) {
   return campos.filter(campo => body[campo] === undefined || body[campo] === null || body[campo] === '');
 }
 
+function decimalOpcional(valor) {
+  if (valor === undefined || valor === null) return null;
+  if (typeof valor === 'string' && valor.trim() === '') return null;
+  const numero = Number(typeof valor === 'string' ? valor.trim() : valor);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+function textoParametro(valor) {
+  if (valor === undefined || valor === null || valor === '') return null;
+  return String(valor);
+}
+
 function parametrosProveedor(request, body) {
   return request
-    .input('SupplierReference', sql.NVarChar(20), body.SupplierReference ?? null)
+    .input('SupplierReference', sql.NVarChar(40), body.SupplierReference ?? null)
     .input('SupplierName', sql.NVarChar(100), body.SupplierName)
     .input('SupplierCategoryID', sql.Int, body.SupplierCategoryID)
     .input('PrimaryContactPersonID', sql.Int, body.PrimaryContactPersonID)
@@ -25,20 +37,20 @@ function parametrosProveedor(request, body) {
     .input('DeliveryMethodID', sql.Int, body.DeliveryMethodID ?? null)
     .input('DeliveryCityID', sql.Int, body.DeliveryCityID)
     .input('PostalCityID', sql.Int, body.PostalCityID)
-    .input('DeliveryPostalCode', sql.NVarChar(10), body.DeliveryPostalCode)
+    .input('DeliveryPostalCode', sql.NVarChar(20), body.DeliveryPostalCode)
     .input('PostalPostalCode', sql.NVarChar(20), body.PostalPostalCode)
-    .input('PhoneNumber', sql.NVarChar(20), body.PhoneNumber)
-    .input('FaxNumber', sql.NVarChar(20), body.FaxNumber)
-    .input('WebsiteURL', sql.NVarChar(255), body.WebsiteURL)
-    .input('DeliveryAddressLine1', sql.NVarChar(60), body.DeliveryAddressLine1)
-    .input('DeliveryAddressLine2', sql.NVarChar(60), body.DeliveryAddressLine2 ?? null)
-    .input('PostalAddressLine1', sql.NVarChar(60), body.PostalAddressLine1)
-    .input('PostalAddressLine2', sql.NVarChar(60), body.PostalAddressLine2 ?? null)
-    .input('DeliveryLatitude', sql.Decimal(9, 6), body.DeliveryLatitude ?? null)
-    .input('DeliveryLongitude', sql.Decimal(9, 6), body.DeliveryLongitude ?? null)
-    .input('BankAccountBranch', sql.NVarChar(20), body.BankAccountBranch)
-    .input('BankAccountName', sql.NVarChar(100), body.BankAccountName)
-    .input('BankAccountNumber', sql.NVarChar(20), body.BankAccountNumber)
+    .input('PhoneNumber', sql.NVarChar(40), body.PhoneNumber)
+    .input('FaxNumber', sql.NVarChar(40), body.FaxNumber)
+    .input('WebsiteURL', sql.NVarChar(512), body.WebsiteURL)
+    .input('DeliveryAddressLine1', sql.NVarChar(120), body.DeliveryAddressLine1)
+    .input('DeliveryAddressLine2', sql.NVarChar(120), body.DeliveryAddressLine2 ?? null)
+    .input('PostalAddressLine1', sql.NVarChar(120), body.PostalAddressLine1)
+    .input('PostalAddressLine2', sql.NVarChar(120), body.PostalAddressLine2 ?? null)
+    .input('DeliveryLatitude', sql.Decimal(9, 6), decimalOpcional(body.DeliveryLatitude))
+    .input('DeliveryLongitude', sql.Decimal(9, 6), decimalOpcional(body.DeliveryLongitude))
+    .input('BankAccountBranch', sql.NVarChar(100), textoParametro(body.BankAccountBranch))
+    .input('BankAccountName', sql.NVarChar(100), textoParametro(body.BankAccountName))
+    .input('BankAccountNumber', sql.NVarChar(40), textoParametro(body.BankAccountNumber))
     .input('PaymentDays', sql.Int, body.PaymentDays)
     .input('LastEditedBy', sql.Int, body.LastEditedBy);
 }
