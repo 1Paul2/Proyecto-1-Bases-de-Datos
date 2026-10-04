@@ -35,8 +35,11 @@ BEGIN
                 IL.ExtendedPrice    AS Monto
             FROM Syn_Invoices I
             INNER JOIN Syn_InvoiceLines IL ON IL.InvoiceID = I.InvoiceID
-            INNER JOIN Syn_StockItemStockGroups SIG ON SIG.StockItemID = IL.StockItemID
-            INNER JOIN Syn_StockGroups SG ON SG.StockGroupID = SIG.StockGroupID
+            INNER JOIN Syn_StockGroups SG ON SG.StockGroupID = (
+                SELECT MIN(SIG.StokGroupID)
+                FROM Syn_StockGroups SIG
+                WHERE SIG.StockGroupID = IL.StockGroupID
+            )
         ) Origen
         PIVOT (
             SUM(Monto) FOR Anio IN (' + @cols + N')
