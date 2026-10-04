@@ -243,12 +243,12 @@ export default function Clientes() {
       </dl>
 
       <h2>Ubicación de entrega</h2>
-      <Mapa
-        latitud={detalle.DeliveryLatitude}
-        longitud={detalle.DeliveryLongitude}
-        titulo={detalle.Nombre || detalle.CustomerName}
-        subtitulo={detalle.DeliveryAddressLine1}
-      />
+        <Mapa
+          latitud={detalle.Latitud}
+          longitud={detalle.Longitud}
+          titulo={detalle.Nombre || detalle.CustomerName}
+          subtitulo={detalle.DeliveryAddressLine1}
+        />
     </div>
   </div>
 )}

@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { poolPromise } = require('./db');
+const inicializarBD = require('./init');   // 👈 NUEVO
 
 const app = express();
 app.use(cors());
@@ -25,5 +26,13 @@ app.use('/api/proveedores', require('./routes/proveedores'));
 app.use('/api/ventas', require('./routes/ventas'));
 app.use('/api/estadisticas', require('./routes/estadisticas'));
 
-app.listen(process.env.PORT, () =>
-  console.log(`API en http://localhost:${process.env.PORT}`));
+inicializarBD()
+  .then(() => {
+    app.listen(process.env.PORT, () =>
+      console.log(`API en http://localhost:${process.env.PORT}`)
+    );
+  })
+  .catch(err => {
+    console.error('Falló la inicialización:', err.message);
+    process.exit(1);
+  });
