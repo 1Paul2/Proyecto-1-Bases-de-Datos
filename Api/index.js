@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { poolPromise } = require('./db');
-const inicializarBD = require('./init');   // 👈 NUEVO
+const inicializarBD = require('./init');   
 
 const app = express();
 app.use(cors());
