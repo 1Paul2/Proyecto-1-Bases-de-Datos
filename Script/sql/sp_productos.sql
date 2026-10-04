@@ -18,32 +18,24 @@ AS
 BEGIN
     SELECT SI.StockItemID as StockItemID,
     SI.StockItemName as StockItemName,
-    (
-        SELECT STRING_AGG(SG2.StockGroupName, ', ')
-        FROM Syn_StockItemStockGroups SIG2
-        INNER JOIN Syn_StockGroups SG2 ON SG2.StockGroupID = SIG2.StockGroupID
-        WHERE SIG2.StockItemID = SI.StockItemID
-    ) as StockGroupNames,
+    STRING_AGG(SG.StockGroupName, ', ') as StockGroupNames,
     SIH.QuantityOnHand as QuantityOnHand
     FROM Syn_StockItems SI
+
+    LEFT JOIN Syn_StockItemStockGroups SIG ON SIG.StockItemID = SI.StockItemID
+    LEFT JOIN Syn_StockGroups SG ON SG.StockGroupID = SIG.StockGroupID
     INNER JOIN Syn_StockItemHoldings SIH ON SIH.StockItemID = SI.StockItemID
     WHERE (@Name IS NULL OR SI.StockItemName LIKE '%' + @Name + '%')
-        AND (@StockGroupID IS NULL OR EXISTS (
-            SELECT 1
-            FROM Syn_StockItemStockGroups SIG
-            WHERE SIG.StockItemID = SI.StockItemID
-              AND SIG.StockGroupID = @StockGroupID
-        ))
+        AND (@StockGroupID IS NULL OR SG.StockGroupID = @StockGroupID)
+    GROUP BY SI.StockItemID, SI.StockItemName, SIH.QuantityOnHand
     ORDER BY SI.StockItemName ASC
 END;
 GO
 
 CREATE OR ALTER PROCEDURE SP_GetStockItemDetails
-    @StockItemName NVARCHAR(100) = NULL,
-    @StockGroupID INT
+    @StockItemID INT
 AS
 BEGIN
-    SET NOCOUNT ON;
     SELECT SI.StockItemID as StockItemID,
     SI.StockItemName as StockItemName,
     S.SupplierID as SupplierID,
@@ -72,13 +64,7 @@ BEGIN
     INNER JOIN Syn_StockItemHoldings SIH ON SIH.StockItemID = SI.StockItemID
     INNER JOIN Syn_PackageTypes PT ON PT.PackageTypeID = SI.UnitPackageID
     INNER JOIN Syn_PackageTypes PT2 ON PT2.PackageTypeID = SI.OuterPackageID
-    WHERE (@StockItemName IS NULL OR SI.StockItemName LIKE '%' + @StockItemName + '%')
-      AND (@StockGroupID IS NULL OR EXISTS (
-            SELECT 1
-            FROM Syn_StockItemStockGroups SIG
-            WHERE SIG.StockItemID = SI.StockItemID AND SIG.StockGroupID = @StockGroupID
-            )
-        )
-    ORDER BY SI.StockItemName ASC
+
+    WHERE SI.StockItemID = @StockItemID
 END;
 GO

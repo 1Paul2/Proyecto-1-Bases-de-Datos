@@ -58,7 +58,7 @@ crearRuta('/matriz', 'sp_matriz_ventas_categoria_anio');
 // #7 y #8: seguimiento mensual
 const seguimiento = [
   entero('anio', 'anio'), entero('mes', 'mes'),
-  texto('categoria', 'categoria'), texto('subcategoria', 'subcategoria')
+  texto('categoria', 'categoria')
 ];
 crearRuta('/seguimiento-clientes', 'sp_seguimiento_compras_cliente', seguimiento);
 crearRuta('/seguimiento-proveedores', 'sp_seguimiento_compras_proveedor', seguimiento);

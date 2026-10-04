@@ -1,8 +1,7 @@
 USE WideWorldImporters;
 GO
 
- -- #6
-
+-- #6
 CREATE OR ALTER PROCEDURE sp_matriz_ventas_categoria_anio
 AS
 BEGIN
@@ -34,12 +33,14 @@ BEGIN
                 YEAR(I.InvoiceDate) AS Anio,
                 IL.ExtendedPrice    AS Monto
             FROM Syn_Invoices I
-            INNER JOIN Syn_InvoiceLines IL ON IL.InvoiceID = I.InvoiceID
-            INNER JOIN Syn_StockGroups SG ON SG.StockGroupID = (
-                SELECT MIN(SIG.StokGroupID)
-                FROM Syn_StockGroups SIG
-                WHERE SIG.StockGroupID = IL.StockGroupID
-            )
+            INNER JOIN Syn_InvoiceLines IL 
+                ON IL.InvoiceID = I.InvoiceID
+            INNER JOIN Syn_StockGroups SG 
+                ON SG.StockGroupID = (
+                    SELECT MIN(SIG.StockGroupID)
+                    FROM Syn_StockItemStockGroups SIG
+                    WHERE SIG.StockItemID = IL.StockItemID
+                )
         ) Origen
         PIVOT (
             SUM(Monto) FOR Anio IN (' + @cols + N')

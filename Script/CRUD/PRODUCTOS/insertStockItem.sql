@@ -1,5 +1,6 @@
-use WideWorldImporters;
+USE WideWorldImporters;
 GO
+
 CREATE OR ALTER PROCEDURE SP_InsertStockItem
     @StockItemName NVARCHAR(100),
     @SupplierID INT,
@@ -12,10 +13,9 @@ CREATE OR ALTER PROCEDURE SP_InsertStockItem
     @Size NVARCHAR(20) = NULL,
     @TaxRate DECIMAL(18, 2),
     @UnitPrice DECIMAL(18, 2),
-    @IsChillerStock	bit,
+    @IsChillerStock bit,
     @RecommendedRetailPrice DECIMAL(18, 2) = NULL,
     @TypicalWeightPerUnit DECIMAL(18, 2) = NULL,
-    @SearchDetails NVARCHAR(MAX) = NULL,
     @BinLocation NVARCHAR(20) = NULL,
     @LastEditedBy INT
 AS
@@ -23,11 +23,44 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
+    IF NOT EXISTS (SELECT 1 FROM Syn_Suppliers WHERE SupplierID = @SupplierID)
+        THROW 50020, 'El proveedor indicado no existe.', 1;
+
     BEGIN TRY
         BEGIN TRANSACTION;
-        INSERT INTO Syn_StockItems (StockItemName, SupplierID, LeadTimeDays, ColorID, UnitPackageID, OuterPackageID, QuantityPerOuter, Brand, Size, TaxRate, UnitPrice, IsChillerStock, RecommendedRetailPrice, TypicalWeightPerUnit, LastEditedBy)
-        VALUES (@StockItemName, @SupplierID, @LeadTimeDays, @ColorID, @UnitPackageID, @OuterPackageID, @QuantityPerOuter, @Brand, @Size, @TaxRate, @UnitPrice, @IsChillerStock, @RecommendedRetailPrice, @TypicalWeightPerUnit, @LastEditedBy);
-        SELECT SCOPE_IDENTITY() AS NewStockItemID;
+
+        INSERT INTO Syn_StockItems
+        (
+            StockItemName, SupplierID, LeadTimeDays, ColorID,
+            UnitPackageID, OuterPackageID, QuantityPerOuter,
+            Brand, Size, TaxRate, UnitPrice, IsChillerStock,
+            RecommendedRetailPrice, TypicalWeightPerUnit,
+            LastEditedBy
+        )
+        VALUES
+        (
+            @StockItemName, @SupplierID, @LeadTimeDays, @ColorID,
+            @UnitPackageID, @OuterPackageID, @QuantityPerOuter,
+            @Brand, @Size, @TaxRate, @UnitPrice, @IsChillerStock,
+            @RecommendedRetailPrice, @TypicalWeightPerUnit,
+            @LastEditedBy
+        );
+
+        DECLARE @NewStockItemID INT = SCOPE_IDENTITY();
+        INSERT INTO Syn_StockItemHoldings
+        (
+            StockItemID, QuantityOnHand, BinLocation,
+            LastStocktakeQuantity, LastCostPrice,
+            ReorderLevel, TargetStockLevel, LastEditedBy
+        )
+        VALUES
+        (
+            @NewStockItemID, 0, @BinLocation,
+            0, @UnitPrice,
+            0, 0, @LastEditedBy
+        );
+
+        SELECT @NewStockItemID AS NewStockItemID;
         COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
