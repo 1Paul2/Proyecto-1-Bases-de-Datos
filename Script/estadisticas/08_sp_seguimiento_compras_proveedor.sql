@@ -6,8 +6,7 @@ GO
 CREATE OR ALTER PROCEDURE sp_seguimiento_compras_proveedor
     @anio INT = NULL,
     @mes INT = NULL,
-    @categoria VARCHAR(100) = NULL,   
-    @subcategoria VARCHAR(100) = NULL    
+    @categoria VARCHAR(100) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -39,12 +38,6 @@ BEGIN
                 INNER JOIN Syn_StockGroups SG ON SG.StockGroupID = SIG.StockGroupID
                 WHERE SIG.StockItemID = POL.StockItemID
                   AND SG.StockGroupName LIKE '%' + @categoria + '%'))
-          AND (@subcategoria IS NULL OR EXISTS (
-                SELECT 1
-                FROM Syn_StockItems SI
-                INNER JOIN Syn_PackageTypes PT ON PT.PackageTypeID = SI.UnitPackageID
-                WHERE SI.StockItemID = POL.StockItemID
-                  AND PT.PackageTypeName LIKE '%' + @subcategoria + '%'))
     ),
     Resumen AS (
         SELECT

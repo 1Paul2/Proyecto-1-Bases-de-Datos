@@ -15,7 +15,7 @@ BEGIN
             C.CustomerName,
             CC.CustomerCategoryName,
             I.InvoiceID,
-            SUM(IL.Quantity * IL.UnitPrice) AS TotalFactura
+            SUM(IL.ExtendedPrice) AS TotalFactura
         FROM Syn_Customers C
         INNER JOIN Syn_CustomerCategories CC ON CC.CustomerCategoryID = C.CustomerCategoryID
         INNER JOIN Syn_Invoices I ON I.CustomerID = C.CustomerID
