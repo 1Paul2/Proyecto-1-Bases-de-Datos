@@ -3,6 +3,7 @@ import { enviar, pedir } from '../Api';
 import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
 import Paginacion from '../components/Paginacion';
+import ConfirmarEliminar from '../components/ConfirmarEliminar';
 import Mapa from '../components/Mapa';
 
 const POR_PAGINA = 10;
@@ -61,6 +62,7 @@ export default function Proveedores() {
   const [detalle, setDetalle] = useState(null);
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
+  const [porEliminar, setPorEliminar] = useState(null);
   const [formulario, setFormulario] = useState(formularioInicial);
   const [modoFormulario, setModoFormulario] = useState(null);
   const [guardando, setGuardando] = useState(false);
@@ -192,15 +194,19 @@ export default function Proveedores() {
     }
   };
 
-  const eliminar = async fila => {
-    if (!window.confirm(`¿Eliminar el proveedor "${fila.SupplierName}"?`)) return;
-    try {
-      await enviar(`/proveedores/${fila.SupplierID}`, 'DELETE');
-      setMensaje('Proveedor eliminado correctamente.');
-      setProveedores(actuales => actuales.filter(item => item.SupplierID !== fila.SupplierID));
-    } catch (err) {
-      setError(err.message);
-    }
+  const eliminar = fila => {
+    setError('');
+    setMensaje('');
+    setPorEliminar(fila);
+  };
+
+  // Si falla, el error sube a la ventana de confirmación y se muestra ahí
+  const confirmarEliminar = async () => {
+    const fila = porEliminar;
+    await enviar(`/proveedores/${fila.SupplierID}`, 'DELETE');
+    setPorEliminar(null);
+    setMensaje('Proveedor eliminado correctamente.');
+    setProveedores(actuales => actuales.filter(item => item.SupplierID !== fila.SupplierID));
   };
 
   const campos = [
@@ -269,6 +275,15 @@ export default function Proveedores() {
         porPagina={POR_PAGINA}
         onCambio={setPagina}
       />
+
+      {porEliminar && (
+        <ConfirmarEliminar
+          tipo="proveedor"
+          nombre={porEliminar.SupplierName}
+          onConfirmar={confirmarEliminar}
+          onCancelar={() => setPorEliminar(null)}
+        />
+      )}
 
       {detalle && (
         <div className="fondo" onClick={() => setDetalle(null)}>

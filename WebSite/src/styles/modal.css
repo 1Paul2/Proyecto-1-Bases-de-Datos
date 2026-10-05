@@ -118,3 +118,79 @@
     border-radius: 12px;
   }
 }
+/* ---------- Confirmar eliminación ---------- */
+.ventana.ventana-confirmar {
+  width: min(420px, 100%);
+  padding: 32px 28px 24px;
+  text-align: center;
+}
+
+.confirmar-icono {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fef2f2;
+  color: #dc2626;
+  box-shadow: 0 0 0 8px #fff5f5;
+  animation: sacudirIcono 0.5s ease 0.15s;
+}
+
+@keyframes sacudirIcono {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-10deg); }
+  50% { transform: rotate(8deg); }
+  75% { transform: rotate(-4deg); }
+}
+
+.ventana-confirmar h3 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.ventana-confirmar p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.ventana-confirmar strong {
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.ventana-confirmar .confirmar-error {
+  margin-top: 16px;
+  text-align: left;
+}
+
+.confirmar-acciones {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.confirmar-acciones .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.btn-eliminar {
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 4px 12px -4px rgba(220, 38, 38, 0.5);
+}
+.btn-eliminar:hover:not(:disabled) {
+  background: #b91c1c;
+  box-shadow: 0 8px 20px -6px rgba(220, 38, 38, 0.55);
+}
+
+@media (max-width: 420px) {
+  .confirmar-acciones { flex-direction: column-reverse; }
+}
