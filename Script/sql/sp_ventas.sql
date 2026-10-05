@@ -61,6 +61,7 @@ BEGIN
 END;
 GO
 
+
 CREATE OR ALTER PROCEDURE SP_GetSaleHeader
     @InvoiceID INT
 AS
@@ -79,9 +80,9 @@ BEGIN
         I.SalespersonPersonID as SalespersonPersonID,
         I.InvoiceDate as InvoiceDate,
         I.DeliveryInstructions as DeliveryInstructions,
-        ISNULL(SUM(IL.ExtendedPrice), 0) as Subtotal,
+        ISNULL(SUM(IL.ExtendedPrice - IL.TaxAmount), 0) as Subtotal,
         ISNULL(SUM(IL.TaxAmount), 0) as TotalTax,
-        ISNULL(SUM(IL.ExtendedPrice + IL.TaxAmount), 0) as TotalAmount
+        ISNULL(SUM(IL.ExtendedPrice), 0) as TotalAmount
     FROM Syn_Invoices I
     INNER JOIN Syn_Customers C ON I.CustomerID = C.CustomerID
     INNER JOIN Syn_DeliveryMethods D ON I.DeliveryMethodID = D.DeliveryMethodID
@@ -109,7 +110,7 @@ BEGIN
         IL.TaxRate as TaxRate,
         IL.TaxAmount as TaxAmount,
         IL.ExtendedPrice as ExtendedPrice,
-        IL.ExtendedPrice + IL.TaxAmount as TotalPorLinea
+        IL.ExtendedPrice as TotalPorLinea
     FROM Syn_InvoiceLines IL
     INNER JOIN Syn_StockItems SI ON IL.StockItemID = SI.StockItemID
     WHERE IL.InvoiceID = @InvoiceID

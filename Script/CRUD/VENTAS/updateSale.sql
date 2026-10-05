@@ -2,16 +2,16 @@ USE WideWorldImporters;
 GO
 
 CREATE OR ALTER PROCEDURE SP_UpdateSale
-    @InvoiceID                    INT,
-    @CustomerID                   INT,
-    @DeliveryMethodID             INT,
-    @CustomerPurchaseOrderNumber  NVARCHAR(20),
-    @ContactPersonID              INT,
-    @SalespersonPersonID          INT,
-    @InvoiceDate                  DATE,
-    @DeliveryInstructions         NVARCHAR(500),
-    @BillToCustomerID             INT,
-    @Lines                     NVARCHAR(MAX)
+    @InvoiceID INT,
+    @CustomerID INT,
+    @DeliveryMethodID INT,
+    @CustomerPurchaseOrderNumber NVARCHAR(20),
+    @ContactPersonID INT,
+    @SalespersonPersonID INT,
+    @InvoiceDate DATE,
+    @DeliveryInstructions NVARCHAR(500),
+    @BillToCustomerID INT,
+    @Lines NVARCHAR(MAX)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -33,7 +33,7 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- Parser
+      
         ;WITH Filas AS (
             SELECT LTRIM(RTRIM(value)) AS Fila
             FROM STRING_SPLIT(@Lines, ';')
@@ -42,7 +42,6 @@ BEGIN
         Campos AS (
             SELECT
                 F.Fila,
-                ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS Rn,
                 LTRIM(RTRIM(P1.value)) AS StockItemID,
                 LTRIM(RTRIM(P2.value)) AS Quantity,
                 LTRIM(RTRIM(P3.value)) AS UnitPrice,
@@ -64,6 +63,10 @@ BEGIN
         INTO #Lineas
         FROM Campos;
 
+        -- Si ninguna fila tuvo los 5 campos, el parser las descarta 
+        IF NOT EXISTS (SELECT 1 FROM #Lineas)
+            THROW 50014, 'Las líneas de factura no tienen un formato válido.', 1;
+
         IF EXISTS (
             SELECT 1 FROM #Lineas L
             WHERE NOT EXISTS (SELECT 1 FROM Syn_StockItems SI WHERE SI.StockItemID = L.StockItemID)
@@ -71,26 +74,27 @@ BEGIN
             THROW 50013, 'Una o más líneas referencian un producto inexistente.', 1;
 
         UPDATE Syn_Invoices
-        SET CustomerID                  = @CustomerID,
-            DeliveryMethodID            = @DeliveryMethodID,
+        SET CustomerID = @CustomerID,
+            DeliveryMethodID = @DeliveryMethodID,
             CustomerPurchaseOrderNumber = @CustomerPurchaseOrderNumber,
-            ContactPersonID             = @ContactPersonID,
-            SalespersonPersonID         = @SalespersonPersonID,
-            InvoiceDate                 = @InvoiceDate,
-            DeliveryInstructions        = @DeliveryInstructions,
-            BillToCustomerID            = @BillToCustomerID
+            ContactPersonID = @ContactPersonID,
+            SalespersonPersonID = @SalespersonPersonID,
+            InvoiceDate = @InvoiceDate,
+            DeliveryInstructions = @DeliveryInstructions,
+            BillToCustomerID = ISNULL(NULLIF(@BillToCustomerID, 0), @CustomerID)
         WHERE InvoiceID = @InvoiceID;
-        DELETE FROM Syn_InvoiceLines WHERE InvoiceID = @InvoiceID;
-        DECLARE @NewLineID INT = NEXT VALUE FOR Sequences.InvoiceLineID;
 
+        DELETE FROM Syn_InvoiceLines WHERE InvoiceID = @InvoiceID;
+
+        -- InvoiceLineID se omite: la columna tiene DEFAULT NEXT VALUE FOR, cada fila toma su propio ID.
+        -- ExtendedPrice incluye el impuesto, igual que en las facturas originales de la base.
         INSERT INTO Syn_InvoiceLines
         (
-            InvoiceLineID, InvoiceID, StockItemID, Description,
+            InvoiceID, StockItemID, Description,
             PackageTypeID, Quantity, UnitPrice, TaxRate, TaxAmount,
             LineProfit, ExtendedPrice, LastEditedBy, LastEditedWhen
         )
         SELECT
-            @NewLineID + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1,
             @InvoiceID,
             L.StockItemID,
             ISNULL(NULLIF(L.Description, ''), SI.StockItemName),
@@ -98,21 +102,24 @@ BEGIN
             L.Quantity,
             L.UnitPrice,
             L.TaxRate,
-            CAST(L.Quantity * L.UnitPrice * L.TaxRate / 100.0 AS DECIMAL(18,2)),
+            T.TaxAmount,
             CAST(L.Quantity * (L.UnitPrice - ISNULL(SI.RecommendedRetailPrice, 0)) AS DECIMAL(18,2)),
-            CAST(L.Quantity * L.UnitPrice AS DECIMAL(18,2)),
+            CAST(L.Quantity * L.UnitPrice AS DECIMAL(18,2)) + T.TaxAmount,
             @SalespersonPersonID,
             SYSDATETIME()
         FROM #Lineas L
-        INNER JOIN Syn_StockItems SI ON SI.StockItemID = L.StockItemID;
+        INNER JOIN Syn_StockItems SI ON SI.StockItemID = L.StockItemID
+        CROSS APPLY (
+            SELECT CAST(ROUND(L.Quantity * L.UnitPrice * L.TaxRate / 100.0, 2) AS DECIMAL(18,2)) AS TaxAmount
+        ) T;
 
         DROP TABLE #Lineas;
 
         COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
-        IF OBJECT_ID('tempdb..#Lineas') IS NOT NULL DROP TABLE #Lineas;
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        IF OBJECT_ID('tempdb..#Lineas') IS NOT NULL DROP TABLE #Lineas;
         THROW;
     END CATCH;
 END;

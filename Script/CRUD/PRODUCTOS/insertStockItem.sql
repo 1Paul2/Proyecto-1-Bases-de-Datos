@@ -29,9 +29,12 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
+       
+        DECLARE @NewStockItemID INT = NEXT VALUE FOR Sequences.StockItemID;
+
         INSERT INTO Syn_StockItems
         (
-            StockItemName, SupplierID, LeadTimeDays, ColorID,
+            StockItemID, StockItemName, SupplierID, LeadTimeDays, ColorID,
             UnitPackageID, OuterPackageID, QuantityPerOuter,
             Brand, Size, TaxRate, UnitPrice, IsChillerStock,
             RecommendedRetailPrice, TypicalWeightPerUnit,
@@ -39,14 +42,13 @@ BEGIN
         )
         VALUES
         (
-            @StockItemName, @SupplierID, @LeadTimeDays, @ColorID,
+            @NewStockItemID, @StockItemName, @SupplierID, @LeadTimeDays, @ColorID,
             @UnitPackageID, @OuterPackageID, @QuantityPerOuter,
             @Brand, @Size, @TaxRate, @UnitPrice, @IsChillerStock,
-            @RecommendedRetailPrice, @TypicalWeightPerUnit,
+            @RecommendedRetailPrice, ISNULL(@TypicalWeightPerUnit, 0),
             @LastEditedBy
         );
 
-        DECLARE @NewStockItemID INT = SCOPE_IDENTITY();
         INSERT INTO Syn_StockItemHoldings
         (
             StockItemID, QuantityOnHand, BinLocation,
@@ -55,7 +57,7 @@ BEGIN
         )
         VALUES
         (
-            @NewStockItemID, 0, @BinLocation,
+            @NewStockItemID, 0, ISNULL(@BinLocation, ''),
             0, @UnitPrice,
             0, 0, @LastEditedBy
         );

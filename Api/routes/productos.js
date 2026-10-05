@@ -17,24 +17,35 @@ function decimalOpcional(valor) {
   return Number.isFinite(numero) ? numero : null;
 }
 
+function enteroOpcional(valor) {
+  if (valor === undefined || valor === null || valor === '') return null;
+  const numero = Number(valor);
+  return Number.isInteger(numero) && numero > 0 ? numero : null;
+}
+
+function textoOpcional(valor) {
+  if (valor === undefined || valor === null) return null;
+  const texto = String(valor).trim();
+  return texto === '' ? null : texto;
+}
+
 function parametrosProducto(request, body) {
   return request
     .input('StockItemName', sql.NVarChar(100), body.StockItemName)
     .input('SupplierID', sql.Int, body.SupplierID)
     .input('LeadTimeDays', sql.Int, body.LeadTimeDays)
-    .input('ColorID', sql.Int, body.ColorID ?? null)
+    .input('ColorID', sql.Int, enteroOpcional(body.ColorID))
     .input('UnitPackageID', sql.Int, body.UnitPackageID)
     .input('OuterPackageID', sql.Int, body.OuterPackageID)
     .input('QuantityPerOuter', sql.Int, body.QuantityPerOuter)
-    .input('Brand', sql.NVarChar(50), body.Brand ?? null)
-    .input('Size', sql.NVarChar(20), body.Size ?? null)
+    .input('Brand', sql.NVarChar(50), textoOpcional(body.Brand))
+    .input('Size', sql.NVarChar(20), textoOpcional(body.Size))
     .input('TaxRate', sql.Decimal(18, 2), decimalOpcional(body.TaxRate))
     .input('UnitPrice', sql.Decimal(18, 2), decimalOpcional(body.UnitPrice))
     .input('IsChillerStock', sql.Bit, body.IsChillerStock ?? false)
     .input('RecommendedRetailPrice', sql.Decimal(18, 2), decimalOpcional(body.RecommendedRetailPrice))
     .input('TypicalWeightPerUnit', sql.Decimal(18, 2), decimalOpcional(body.TypicalWeightPerUnit))
-    .input('SearchDetails', sql.NVarChar(sql.MAX), body.SearchDetails ?? null)
-    .input('BinLocation', sql.NVarChar(20), body.BinLocation ?? null)
+    .input('BinLocation', sql.NVarChar(20), textoOpcional(body.BinLocation))
     .input('LastEditedBy', sql.Int, body.LastEditedBy);
 }
 

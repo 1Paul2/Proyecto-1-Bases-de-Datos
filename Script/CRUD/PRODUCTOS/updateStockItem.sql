@@ -47,20 +47,20 @@ BEGIN
             UnitPrice = @UnitPrice,
             IsChillerStock = @IsChillerStock,
             RecommendedRetailPrice = @RecommendedRetailPrice,
-            TypicalWeightPerUnit = @TypicalWeightPerUnit,
+            TypicalWeightPerUnit = ISNULL(@TypicalWeightPerUnit, 0),
             LastEditedBy = @LastEditedBy
         WHERE StockItemID = @StockItemID;
         IF EXISTS (SELECT 1 FROM Syn_StockItemHoldings WHERE StockItemID = @StockItemID)
         BEGIN
             UPDATE Syn_StockItemHoldings
-            SET BinLocation = @BinLocation,
+            SET BinLocation = ISNULL(@BinLocation, ''),
                 LastEditedBy = @LastEditedBy
             WHERE StockItemID = @StockItemID;
         END
         ELSE
         BEGIN
             INSERT INTO Syn_StockItemHoldings (StockItemID, QuantityOnHand, BinLocation, LastStocktakeQuantity, LastCostPrice, ReorderLevel, TargetStockLevel, LastEditedBy)
-            VALUES (@StockItemID, 0, @BinLocation, 0, @UnitPrice, 0, 0, @LastEditedBy);
+            VALUES (@StockItemID, 0, ISNULL(@BinLocation, ''), 0, @UnitPrice, 0, 0, @LastEditedBy);
         END
         COMMIT TRANSACTION;
     END TRY

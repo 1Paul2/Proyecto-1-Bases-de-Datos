@@ -216,6 +216,7 @@ export default function Clientes() {
           onFila={verDetalle}
           acciones={fila => (
             <div className="acciones-fila">
+              <button type="button" onClick={e => { e.stopPropagation(); verDetalle(fila); }}>Ver detalles</button>
               <button type="button" onClick={evento => { evento.stopPropagation(); abrirEdicion(fila); }}>
                 Editar
               </button>
@@ -257,7 +258,7 @@ export default function Clientes() {
                     <dt>{etiqueta}</dt>
                     <dd>
                       {vacio
-                        ? '—'
+                        ? 'Vacío'
                         : clave === 'Sitio_web'
                           ? <a href={valor} target="_blank" rel="noreferrer">{valor}</a>
                           : String(valor)}
@@ -290,7 +291,7 @@ export default function Clientes() {
             <label>Contacto alternativo<input name="AlternateContactPersonID" type="number" value={formulario.AlternateContactPersonID} onChange={cambiarFormulario} /></label>
             <label>Método de entrega<input name="DeliveryMethodID" type="number" value={formulario.DeliveryMethodID} onChange={cambiarFormulario} required /></label>
             <label>Grupo de compra<input name="BuyingGroupID" type="number" value={formulario.BuyingGroupID} onChange={cambiarFormulario} /></label>
-            <label>Cliente por facturar<input name="BillToCustomerID" type="number" value={formulario.BillToCustomerID} onChange={cambiarFormulario} required /></label>
+            <label>Cliente por facturar<input name="BillToCustomerID" type="number" value={formulario.BillToCustomerID} onChange={cambiarFormulario} /></label>
             <label>Ciudad de entrega<input name="DeliveryCityID" type="number" value={formulario.DeliveryCityID} onChange={cambiarFormulario} required /></label>
             <label>Ciudad postal<input name="PostalCityID" type="number" value={formulario.PostalCityID} onChange={cambiarFormulario} required /></label>
             <label>Código postal de entrega<input name="DeliveryPostalCode" value={formulario.DeliveryPostalCode} onChange={cambiarFormulario} required /></label>

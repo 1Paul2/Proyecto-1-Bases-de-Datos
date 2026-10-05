@@ -31,6 +31,22 @@ const camposDetalle = [
   ['Ubicación', 'BinLocation']
 ];
 
+// [etiqueta, columna que devuelve SP_GetSupplierDetails]
+const camposProveedor = [
+  ['Código del proveedor', 'SupplierReference'],
+  ['Nombre del proveedor', 'SupplierName'],
+  ['Categoría', 'SupplierCategoryName'],
+  ['Contacto primario', 'PrimaryContactName'],
+  ['Contacto alternativo', 'AlternateContactName'],
+  ['Método de entrega', 'DeliveryMethodName'],
+  ['Ciudad de entrega', 'DeliveryCityName'],
+  ['Código postal de entrega', 'DeliveryPostalCode'],
+  ['Teléfono', 'PhoneNumber'],
+  ['Fax', 'FaxNumber'],
+  ['Sitio web', 'WebsiteURL'],
+  ['Días de gracia para pagar', 'PaymentDays']
+];
+
 const dinero = v =>
   Number(v).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -47,11 +63,12 @@ const filtrosIniciales = {
   grupo: ''
 };
 
+// SearchDetails no se edita: en la base es una columna calculada
 const formularioInicial = {
   StockItemName: '', SupplierID: '', LeadTimeDays: 1, ColorID: '', UnitPackageID: '',
   OuterPackageID: '', QuantityPerOuter: 1, Brand: '', Size: '', TaxRate: 0, IsChillerStock: false,
   UnitPrice: '', RecommendedRetailPrice: '', TypicalWeightPerUnit: '',
-  SearchDetails: '', BinLocation: '',
+  BinLocation: '',
   // Dato de auditoría: no se pide en pantalla. Lo ideal es que lo asigne la API.
   LastEditedBy: 1
 };
@@ -62,6 +79,7 @@ export default function Productos() {
   const [productos, setProductos] = useState([]);
   const [pagina, setPagina] = useState(1);
   const [detalle, setDetalle] = useState(null);
+  const [proveedor, setProveedor] = useState(null);
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [formulario, setFormulario] = useState(formularioInicial);
@@ -110,6 +128,15 @@ export default function Productos() {
     }
   };
 
+  const verProveedor = async id => {
+    try {
+      const res = await pedir(`/proveedores/${id}`);
+      setProveedor(res.data[0]);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const abrirNuevo = () => {
     setError('');
     setMensaje('');
@@ -138,7 +165,6 @@ export default function Productos() {
         IsChillerStock: datos.IsChillerStock ?? false,
         RecommendedRetailPrice: datos.RecommendedRetailPrice ?? '',
         TypicalWeightPerUnit: datos.TypicalWeightPerUnit ?? '',
-        SearchDetails: datos.SearchDetails ?? '',
         BinLocation: datos.BinLocation ?? ''
       });
       setError('');
@@ -251,6 +277,7 @@ export default function Productos() {
           onFila={verDetalle}
           acciones={fila => (
             <div className="acciones-fila">
+              <button type="button" onClick={e => { e.stopPropagation(); verDetalle(fila); }}>Ver detalles</button>
               <button type="button" onClick={e => { e.stopPropagation(); abrirEdicion(fila); }}>Editar</button>
               <button type="button" onClick={e => { e.stopPropagation(); eliminar(fila); }}>Eliminar</button>
             </div>
@@ -287,7 +314,56 @@ export default function Productos() {
                 return (
                   <div key={clave}>
                     <dt>{etiqueta}</dt>
-                    <dd>{vacio ? '—' : formatear ? formatear(valor) : String(valor)}</dd>
+                    <dd>
+                      {vacio
+                        ? 'Vacío'
+                        : clave === 'SupplierName' && detalle.SupplierID
+                          ? (
+                            <a
+                              href="#"
+                              onClick={e => { e.preventDefault(); verProveedor(detalle.SupplierID); }}
+                            >
+                              {valor}
+                            </a>
+                          )
+                          : formatear ? formatear(valor) : String(valor)}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </div>
+        </div>
+      )}
+
+      {proveedor && (
+        <div className="fondo" onClick={() => setProveedor(null)}>
+          <div className="ventana" onClick={e => e.stopPropagation()}>
+            <button
+              type="button"
+              className="btn-cerrar"
+              onClick={() => setProveedor(null)}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+
+            <h2>Detalle del proveedor</h2>
+
+            <dl>
+              {camposProveedor.map(([etiqueta, clave]) => {
+                const valor = proveedor[clave];
+                const vacio = valor === null || valor === undefined || valor === '';
+                return (
+                  <div key={clave}>
+                    <dt>{etiqueta}</dt>
+                    <dd>
+                      {vacio
+                        ? 'Vacío'
+                        : clave === 'WebsiteURL'
+                          ? <a href={valor} target="_blank" rel="noreferrer">{valor}</a>
+                          : String(valor)}
+                    </dd>
                   </div>
                 );
               })}
@@ -315,7 +391,6 @@ export default function Productos() {
             <label>Refrigerado<input name="IsChillerStock" type="checkbox" checked={formulario.IsChillerStock} onChange={evento => cambiarFormulario({ target: { name: 'IsChillerStock', value: evento.target.checked } })} /></label>
             <label>Precio recomendado<input name="RecommendedRetailPrice" type="number" step="0.01" min="0" value={formulario.RecommendedRetailPrice} onChange={cambiarFormulario} /></label>
             <label>Peso típico<input name="TypicalWeightPerUnit" type="number" step="0.01" min="0" value={formulario.TypicalWeightPerUnit} onChange={cambiarFormulario} /></label>
-            <label>Palabras clave<textarea name="SearchDetails" value={formulario.SearchDetails} onChange={cambiarFormulario} /></label>
             <label>Ubicación<input name="BinLocation" value={formulario.BinLocation} onChange={cambiarFormulario} /></label>
             <button type="submit" disabled={guardando}>
               {guardando ? 'Guardando...' : 'Guardar'}

@@ -9,7 +9,7 @@ const entero = (nombre, query) =>
   ({ nombre, query, defecto: null, tipo: sql.Int, convertir: parseInt });
 const bit = (nombre, query, defecto) =>
   ({ nombre, query, defecto, tipo: sql.Bit,
-     convertir: v => (v === '1' || v === 'true') ? 1 : 0 });
+     convertir: v => (v === 1 || v === '1' || v === 'true') ? 1 : 0 });
 
 // Crea una ruta GET que ejecuta un SP con los parámetros indicados
 function crearRuta(ruta, sp, parametros = []) {

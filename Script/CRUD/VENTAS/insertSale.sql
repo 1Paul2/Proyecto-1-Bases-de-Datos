@@ -2,14 +2,14 @@ USE WideWorldImporters;
 GO
 
 CREATE OR ALTER PROCEDURE SP_InsertSale
-    @CustomerID                   INT,
-    @DeliveryMethodID             INT,
-    @CustomerPurchaseOrderNumber  NVARCHAR(20),
-    @ContactPersonID              INT,
-    @SalespersonPersonID          INT,
-    @InvoiceDate                  DATE,
-    @DeliveryInstructions         NVARCHAR(500),
-    @Lines                     NVARCHAR(MAX)
+    @CustomerID INT,
+    @DeliveryMethodID INT,
+    @CustomerPurchaseOrderNumber NVARCHAR(20),
+    @ContactPersonID  INT,
+    @SalespersonPersonID INT,
+    @InvoiceDate DATE,
+    @DeliveryInstructions NVARCHAR(500),
+    @Lines NVARCHAR(MAX)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -28,7 +28,7 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- PARSER
+        -- PARSER: cada línea es StockItemID|Cantidad|PrecioUnitario|Impuesto|Descripcion, separadas por ;
         ;WITH Filas AS (
             SELECT LTRIM(RTRIM(value)) AS Fila
             FROM STRING_SPLIT(@Lines, ';')
@@ -37,7 +37,6 @@ BEGIN
         Campos AS (
             SELECT
                 F.Fila,
-                ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS Rn,
                 LTRIM(RTRIM(P1.value)) AS StockItemID,
                 LTRIM(RTRIM(P2.value)) AS Quantity,
                 LTRIM(RTRIM(P3.value)) AS UnitPrice,
@@ -51,13 +50,17 @@ BEGIN
             CROSS APPLY (SELECT value FROM STRING_SPLIT(F.Fila, '|') ORDER BY (SELECT NULL) OFFSET 4 ROWS FETCH NEXT 1 ROWS ONLY) P5
         )
         SELECT
-            CAST(StockItemID AS INT)          AS StockItemID,
-            CAST(Quantity    AS INT)          AS Quantity,
-            CAST(UnitPrice   AS DECIMAL(18,2)) AS UnitPrice,
-            CAST(TaxRate     AS DECIMAL(18,3)) AS TaxRate,
+            CAST(StockItemID AS INT) AS StockItemID,
+            CAST(Quantity AS INT) AS Quantity,
+            CAST(UnitPrice AS DECIMAL(18,2)) AS UnitPrice,
+            CAST(TaxRate AS DECIMAL(18,3)) AS TaxRate,
             Description
         INTO #Lineas
         FROM Campos;
+
+        -- Si ninguna fila tuvo los 5 campos, el parser las descarta 
+        IF NOT EXISTS (SELECT 1 FROM #Lineas)
+            THROW 50014, 'Las líneas de factura no tienen un formato válido.', 1;
 
         IF EXISTS (
             SELECT 1 FROM #Lineas L
@@ -74,6 +77,7 @@ BEGIN
             SET @BillToCustomerID = @CustomerID;
 
         DECLARE @NewInvoiceID INT = NEXT VALUE FOR Sequences.InvoiceID;
+
         INSERT INTO Syn_Invoices
         (
             InvoiceID, CustomerID, BillToCustomerID, DeliveryMethodID,
@@ -88,16 +92,15 @@ BEGIN
             @InvoiceDate, @CustomerPurchaseOrderNumber, 0,
             @DeliveryInstructions, 0, 0, @SalespersonPersonID
         );
-        DECLARE @NewLineID INT = NEXT VALUE FOR Sequences.InvoiceLineID;
 
+        
         INSERT INTO Syn_InvoiceLines
         (
-            InvoiceLineID, InvoiceID, StockItemID, Description,
+            InvoiceID, StockItemID, Description,
             PackageTypeID, Quantity, UnitPrice, TaxRate, TaxAmount,
             LineProfit, ExtendedPrice, LastEditedBy, LastEditedWhen
         )
         SELECT
-            @NewLineID + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1,
             @NewInvoiceID,
             L.StockItemID,
             ISNULL(NULLIF(L.Description, ''), SI.StockItemName),
@@ -105,13 +108,16 @@ BEGIN
             L.Quantity,
             L.UnitPrice,
             L.TaxRate,
-            CAST(L.Quantity * L.UnitPrice * L.TaxRate / 100.0 AS DECIMAL(18,2)),
+            T.TaxAmount,
             CAST(L.Quantity * (L.UnitPrice - ISNULL(SI.RecommendedRetailPrice, 0)) AS DECIMAL(18,2)),
-            CAST(L.Quantity * L.UnitPrice AS DECIMAL(18,2)),
+            CAST(L.Quantity * L.UnitPrice AS DECIMAL(18,2)) + T.TaxAmount,
             @SalespersonPersonID,
             SYSDATETIME()
         FROM #Lineas L
-        INNER JOIN Syn_StockItems SI ON SI.StockItemID = L.StockItemID;
+        INNER JOIN Syn_StockItems SI ON SI.StockItemID = L.StockItemID
+        CROSS APPLY (
+            SELECT CAST(ROUND(L.Quantity * L.UnitPrice * L.TaxRate / 100.0, 2) AS DECIMAL(18,2)) AS TaxAmount
+        ) T;
 
         DROP TABLE #Lineas;
 
@@ -120,8 +126,8 @@ BEGIN
         COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
-        IF OBJECT_ID('tempdb..#Lineas') IS NOT NULL DROP TABLE #Lineas;
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        IF OBJECT_ID('tempdb..#Lineas') IS NOT NULL DROP TABLE #Lineas;
         THROW;
     END CATCH;
 END;

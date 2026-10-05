@@ -55,14 +55,15 @@ const reportes = {
     campos: []
   },
 
+  // La base solo tiene grupos de productos planos (StockGroups), sin subcategorías,
+  // por eso estos reportes se filtran por año, mes y categoría.
   seguimientoClientes: {
     titulo: 'Seguimiento de compras a clientes',
     endpoint: '/estadisticas/seguimiento-clientes',
     campos: [
       { nombre: 'anio', etiqueta: 'Año', tipo: 'number' },
       { nombre: 'mes', etiqueta: 'Mes', tipo: 'number' },
-      { nombre: 'categoria', etiqueta: 'Categoría', tipo: 'text' },
-      { nombre: 'subcategoria', etiqueta: 'Subcategoría', tipo: 'text' }
+      { nombre: 'categoria', etiqueta: 'Categoría', tipo: 'text' }
     ]
   },
 
@@ -72,8 +73,7 @@ const reportes = {
     campos: [
       { nombre: 'anio', etiqueta: 'Año', tipo: 'number' },
       { nombre: 'mes', etiqueta: 'Mes', tipo: 'number' },
-      { nombre: 'categoria', etiqueta: 'Categoría', tipo: 'text' },
-      { nombre: 'subcategoria', etiqueta: 'Subcategoría', tipo: 'text' }
+      { nombre: 'categoria', etiqueta: 'Categoría', tipo: 'text' }
     ]
   },
 
@@ -100,11 +100,18 @@ const reportes = {
   }
 };
 
+// Todos los filtros que usa algún reporte, para que los campos siempre estén controlados
 const filtrosIniciales = {
   proveedor: '',
   cliente: '',
   categoria: '',
-  anio: ''
+  anio: '',
+  anioInicio: '',
+  anioFin: '',
+  mes: '',
+  catCliente: '',
+  catProducto: '',
+  producto: ''
 };
 
 const POR_PAGINA = 10;

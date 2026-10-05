@@ -1,4 +1,4 @@
-use WideWorldImporters;
+USE WideWorldImporters;
 GO
 CREATE OR ALTER PROCEDURE SP_UpdateCustomer
     @CustomerID INT,
@@ -26,11 +26,22 @@ CREATE OR ALTER PROCEDURE SP_UpdateCustomer
     @PostalAddressLine2 NVARCHAR(60) = NULL,
     @AccountOpenedDate DATE,
     @DeliveryLatitude DECIMAL(9, 6) = NULL,
-    @DeliveryLongitude DECIMAL(9, 6) = NULL
+    @DeliveryLongitude DECIMAL(9, 6) = NULL,
+    @LastEditedBy INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
+
+    IF (@DeliveryLatitude IS NULL AND @DeliveryLongitude IS NOT NULL)
+       OR (@DeliveryLatitude IS NOT NULL AND @DeliveryLongitude IS NULL)
+        THROW 50003, 'Debe indicar ambas coordenadas o dejar ambas vacias.', 1;
+
+    IF @DeliveryLatitude IS NOT NULL AND @DeliveryLatitude NOT BETWEEN -90 AND 90
+        THROW 50004, 'La latitud debe estar entre -90 y 90.', 1;
+
+    IF @DeliveryLongitude IS NOT NULL AND @DeliveryLongitude NOT BETWEEN -180 AND 180
+        THROW 50005, 'La longitud debe estar entre -180 y 180.', 1;
 
     BEGIN TRY
         BEGIN TRANSACTION;
@@ -40,29 +51,31 @@ BEGIN
 
         UPDATE Syn_Customers
         SET CustomerName = @CustomerName,
-        CustomerCategoryID = @CustomerCategoryID,
-        BuyingGroupID = NULLIF(@BuyingGroupID, 0),
-        PrimaryContactPersonID = @PrimaryContactPersonID,
-        AlternateContactPersonID = NULLIF(@AlternateContactPersonID, 0),
-        BillToCustomerID = NULLIF(@BillToCustomerID, 0),
-        DeliveryMethodID = @DeliveryMethodID,
-        DeliveryCityID = NULLIF(@DeliveryCityID, 0),
-        PostalCityID = @PostalCityID,
-        DeliveryPostalCode = @DeliveryPostalCode,
-        PostalPostalCode = @PostalPostalCode,
-        PhoneNumber = @PhoneNumber,
-        FaxNumber = @FaxNumber,
-        PaymentDays = @PaymentDays,
-        StandardDiscountPercentage = @StandardDiscountPercentage,
-        IsStatementSent = @IsStatementSent,
-        IsOnCreditHold = @IsOnCreditHold,
-        WebsiteURL = @WebsiteURL,
-        DeliveryAddressLine1 = @DeliveryAddressLine1,
-        DeliveryAddressLine2 = @DeliveryAddressLine2,
-        PostalAddressLine1 = @PostalAddressLine1,
-        PostalAddressLine2 = @PostalAddressLine2,
-        AccountOpenedDate = @AccountOpenedDate,
-            DeliveryLocation = CASE WHEN @DeliveryLatitude IS NULL AND @DeliveryLongitude IS NULL THEN NULL ELSE GEOGRAPHY::Point(@DeliveryLatitude, @DeliveryLongitude, 4326) END
+            CustomerCategoryID = @CustomerCategoryID,
+            BuyingGroupID = NULLIF(@BuyingGroupID, 0),
+            PrimaryContactPersonID = @PrimaryContactPersonID,
+            AlternateContactPersonID = NULLIF(@AlternateContactPersonID, 0),
+            -- BillToCustomerID y DeliveryCityID son NOT NULL: con 0 o NULL se conserva el valor actual
+            BillToCustomerID = ISNULL(NULLIF(@BillToCustomerID, 0), BillToCustomerID),
+            DeliveryMethodID = @DeliveryMethodID,
+            DeliveryCityID = ISNULL(NULLIF(@DeliveryCityID, 0), DeliveryCityID),
+            PostalCityID = @PostalCityID,
+            DeliveryPostalCode = @DeliveryPostalCode,
+            PostalPostalCode = @PostalPostalCode,
+            PhoneNumber = ISNULL(@PhoneNumber, ''),
+            FaxNumber = ISNULL(@FaxNumber, ''),
+            PaymentDays = @PaymentDays,
+            StandardDiscountPercentage = @StandardDiscountPercentage,
+            IsStatementSent = @IsStatementSent,
+            IsOnCreditHold = @IsOnCreditHold,
+            WebsiteURL = ISNULL(@WebsiteURL, ''),
+            DeliveryAddressLine1 = @DeliveryAddressLine1,
+            DeliveryAddressLine2 = @DeliveryAddressLine2,
+            PostalAddressLine1 = @PostalAddressLine1,
+            PostalAddressLine2 = @PostalAddressLine2,
+            AccountOpenedDate = @AccountOpenedDate,
+            DeliveryLocation = CASE WHEN @DeliveryLatitude IS NULL AND @DeliveryLongitude IS NULL THEN NULL ELSE GEOGRAPHY::Point(@DeliveryLatitude, @DeliveryLongitude, 4326) END,
+            LastEditedBy = COALESCE(@LastEditedBy, @PrimaryContactPersonID)
         WHERE CustomerID = @CustomerID;
 
         COMMIT TRANSACTION;

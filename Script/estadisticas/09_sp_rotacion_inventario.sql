@@ -1,16 +1,16 @@
 USE WideWorldImporters;
 GO
 
--- #9 
+-- #9
 
 DROP SYNONYM IF EXISTS Syn_StockItemTransactions;
 CREATE SYNONYM Syn_StockItemTransactions FOR Warehouse.StockItemTransactions;
 GO
 
 CREATE OR ALTER PROCEDURE sp_rotacion_inventario
-    @anio      INT          = NULL,
-    @categoria VARCHAR(100) = NULL,  
-    @proveedor VARCHAR(100) = NULL    
+    @anio INT = NULL,
+    @categoria VARCHAR(100) = NULL,
+    @proveedor VARCHAR(100) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -49,15 +49,44 @@ BEGIN
         INNER JOIN Productos P ON P.StockItemID = T.StockItemID
         GROUP BY T.StockItemID, YEAR(T.TransactionOccurredWhen)
     ),
+    Movimiento AS (
+        SELECT
+            M.StockItemID, M.Anio, M.MovimientoNeto, M.UnidadesVendidas,
+            -- suma de los movimientos hasta el cierre de cada año
+            SUM(M.MovimientoNeto) OVER (PARTITION BY M.StockItemID ORDER BY M.Anio
+                                        ROWS UNBOUNDED PRECEDING) AS MovimientoAcumulado,
+            -- suma de todos los movimientos del producto
+            SUM(M.MovimientoNeto) OVER (PARTITION BY M.StockItemID) AS MovimientoTotal,
+            -- existencia real actual del producto
+            ISNULL(H.QuantityOnHand, 0) AS ExistenciaActual
+        FROM MovimientosAnio M
+        LEFT JOIN Syn_StockItemHoldings H ON H.StockItemID = M.StockItemID
+    ),
+    Acumulado AS (
+        SELECT
+            StockItemID, Anio, MovimientoNeto, UnidadesVendidas,
+            MovimientoAcumulado, MovimientoTotal, ExistenciaActual,
+            MIN(MovimientoAcumulado) OVER (PARTITION BY StockItemID) AS MinimoAcumulado
+        FROM Movimiento
+    ),
     Inventario AS (
         SELECT
-            StockItemID, Anio, UnidadesVendidas,
-            -- inventario al cierre del año = suma acumulada de movimientos
-            SUM(MovimientoNeto) OVER (PARTITION BY StockItemID ORDER BY Anio
-                                      ROWS UNBOUNDED PRECEDING) AS InventarioFinal,
-            SUM(MovimientoNeto) OVER (PARTITION BY StockItemID ORDER BY Anio
-                                      ROWS UNBOUNDED PRECEDING) - MovimientoNeto AS InventarioInicial
-        FROM MovimientosAnio
+            A.StockItemID, A.Anio, A.UnidadesVendidas,
+            -- La base no trae saldo de apertura. Se parte de la existencia actual y se
+            -- retrocede con los movimientos; si los movimientos del producto no cuadran
+            -- con su existencia actual, el saldo inicial es el mínimo que evita
+            -- inventarios negativos (nunca menor que cero).
+            B.SaldoInicial + A.MovimientoAcumulado AS InventarioFinal,
+            B.SaldoInicial + A.MovimientoAcumulado - A.MovimientoNeto AS InventarioInicial
+        FROM Acumulado A
+        CROSS APPLY (
+            SELECT MAX(V.Valor) AS SaldoInicial
+            FROM (VALUES
+                (CAST(A.ExistenciaActual - A.MovimientoTotal AS DECIMAL(18,3))),
+                (CAST(-A.MinimoAcumulado AS DECIMAL(18,3))),
+                (CAST(0 AS DECIMAL(18,3)))
+            ) V(Valor)
+        ) B
     ),
     Calculo AS (
         SELECT

@@ -1,22 +1,6 @@
 use WideWorldImporters;
 GO 
 
-CREATE OR ALTER PROCEDURE SP_LISTA_CLIENTES
-    @Apodo VARCHAR(100)
-AS
-BEGIN
-    SELECT
-        SC.CustomerID AS CustomerID,
-        SC.CustomerName AS Nombre,
-        SCC.CustomerCategoryName AS Categoria,
-        ADM.DeliveryMethodName AS Metodo_de_entrega
-    FROM Syn_Customers SC
-    INNER JOIN Syn_CustomerCategories SCC ON SCC.CustomerCategoryID = SC.CustomerCategoryID
-    INNER JOIN Syn_DeliveryMethods ADM ON ADM.DeliveryMethodID = SC.DeliveryMethodID
-    WHERE SC.CustomerName LIKE '%' + @Apodo + '%'
-    ORDER BY SC.CustomerName ASC;
-END;
-GO
 
 CREATE OR ALTER PROCEDURE SP_CLIENTES
     @Nombre VARCHAR(100)
@@ -93,3 +77,25 @@ GO
 
 --EXEC SP_LISTA_CLIENTES @Apodo = 'Tail';
 --EXEC SP_CLIENTES @Nombre = 'Tailspin Toys (Arbor Vitae, WI)';
+CREATE OR ALTER PROCEDURE SP_LISTA_CLIENTES
+    @Apodo VARCHAR(100) = NULL,
+    @CustomerCategoryID INT = NULL,
+    @DeliveryMethodID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        SC.CustomerID AS CustomerID,
+        SC.CustomerName AS Nombre,
+        SCC.CustomerCategoryName AS Categoria,
+        ADM.DeliveryMethodName AS Metodo_de_entrega
+    FROM Syn_Customers SC
+    INNER JOIN Syn_CustomerCategories SCC ON SCC.CustomerCategoryID = SC.CustomerCategoryID
+    INNER JOIN Syn_DeliveryMethods ADM ON ADM.DeliveryMethodID = SC.DeliveryMethodID
+    WHERE (@Apodo IS NULL OR SC.CustomerName LIKE '%' + @Apodo + '%')
+      AND (@CustomerCategoryID IS NULL OR SC.CustomerCategoryID = @CustomerCategoryID)
+      AND (@DeliveryMethodID IS NULL OR SC.DeliveryMethodID = @DeliveryMethodID)
+    ORDER BY SC.CustomerName ASC;
+END;
+GO

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { enviar, pedir } from '../Api';
+import { pedir } from '../Api';
 import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
 import Paginacion from '../components/Paginacion';
 import Factura from '../components/Factura';
+import Mapa from '../components/Mapa';
 
 const POR_PAGINA = 10;
 
@@ -15,6 +16,57 @@ const columnas = [
   { clave: 'TotalAmount', titulo: 'Monto' }
 ];
 
+// [etiqueta, columna que devuelve SP_CLIENTES]
+const camposCliente = [
+  ['Nombre', 'Nombre'],
+  ['Categoría', 'Categoría'],
+  ['Grupo de compra', 'Grupo_de_compra'],
+  ['Contacto primario', 'Contacto_Primario'],
+  ['Contacto alternativo', 'Contacto_Secundario'],
+  ['Cliente por facturar', 'Cliente_por_facturar'],
+  ['Método de entrega', 'Métodos_de_entrega'],
+  ['Ciudad de entrega', 'Ciudad_de_entrega'],
+  ['Código postal', 'Código_postal'],
+  ['Teléfono', 'Telefono'],
+  ['Fax', 'Fax'],
+  ['Días de gracia para pagar', 'Días_de_gracia_para_pagar'],
+  ['Sitio web', 'Sitio_web'],
+  ['Dirección de entrega 1', 'Direccion_Entrega_1'],
+  ['Dirección de entrega 2', 'Direccion_Entrega_2'],
+  ['Dirección postal 1', 'Direccion_Postal_1'],
+  ['Dirección postal 2', 'Direccion_Postal_2']
+];
+
+// [etiqueta, columna que devuelve SP_GetStockItemDetails]
+const camposProducto = [
+  ['Nombre del producto', 'StockItemName'],
+  ['Proveedor', 'SupplierName'],
+  ['Color', 'ColorName'],
+  ['Unidad de empaquetamiento', 'UnitPackageTypeName'],
+  ['Empaquetamiento', 'OuterPackageTypeName'],
+  ['Cantidad de empaquetamiento', 'QuantityPerOuter'],
+  ['Marca', 'Brand'],
+  ['Tallas / tamaño', 'Size'],
+  ['Impuesto', 'TaxRate'],
+  ['Precio unitario', 'UnitPrice'],
+  ['Precio de venta recomendado', 'RecommendedRetailPrice'],
+  ['Peso', 'TypicalWeightPerUnit'],
+  ['Palabras clave', 'SearchDetails'],
+  ['Cantidad disponible', 'QuantityOnHand'],
+  ['Ubicación', 'BinLocation']
+];
+
+const dinero = v =>
+  Number(v).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Solo presentación: no se calcula ni agrupa nada
+const FORMATOS_PRODUCTO = {
+  TaxRate: v => `${Number(v)} %`,
+  UnitPrice: dinero,
+  RecommendedRetailPrice: dinero,
+  TypicalWeightPerUnit: v => `${Number(v)} kg`
+};
+
 const filtrosIniciales = {
   cliente: '',
   desde: '',
@@ -23,26 +75,14 @@ const filtrosIniciales = {
   max: ''
 };
 
-const formularioInicial = {
-  CustomerID: '',
-  DeliveryMethodID: '',
-  CustomerPurchaseOrderNumber: '',
-  ContactPersonID: '',
-  SalespersonPersonID: '',
-  InvoiceDate: new Date().toISOString().slice(0, 10),
-  DeliveryInstructions: ''
-};
-
 export default function Ventas() {
   const [filtros, setFiltros] = useState(filtrosIniciales);
   const [ventas, setVentas] = useState([]);
   const [pagina, setPagina] = useState(1);
   const [detalle, setDetalle] = useState(null);
+  const [cliente, setCliente] = useState(null);
+  const [producto, setProducto] = useState(null);
   const [error, setError] = useState('');
-  const [mensaje, setMensaje] = useState('');
-  const [formulario, setFormulario] = useState(formularioInicial);
-  const [modoFormulario, setModoFormulario] = useState(null);
-  const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -74,18 +114,6 @@ export default function Ventas() {
     setFiltros(filtrosIniciales);
   };
 
-  const recargar = async () => {
-    const params = new URLSearchParams();
-    if (filtros.cliente) params.append('cliente', filtros.cliente);
-    if (filtros.desde) params.append('desde', filtros.desde);
-    if (filtros.hasta) params.append('hasta', filtros.hasta);
-    if (filtros.min) params.append('min', filtros.min);
-    if (filtros.max) params.append('max', filtros.max);
-
-    const res = await pedir(`/ventas?${params}`);
-    setVentas(res.data);
-  };
-
   const verDetalle = async fila => {
     try {
       const res = await pedir(`/ventas/${fila.InvoiceID}`);
@@ -95,81 +123,23 @@ export default function Ventas() {
     }
   };
 
-  const abrirNuevo = () => {
-    setError('');
-    setMensaje('');
-    setFormulario(formularioInicial);
-    setModoFormulario('nuevo');
-  };
-
-  const abrirEdicion = async fila => {
+  // Enlace del nombre del cliente: abre su detalle (el SP lo busca por nombre)
+  const verCliente = async encabezado => {
+    const nombre = encabezado?.CustomerName ?? encabezado;
     try {
-      const res = await pedir(`/ventas/${fila.InvoiceID}`);
-      const datos = res.encabezado;
-      setError('');
-      setMensaje('');
-      setFormulario({
-        InvoiceID: datos.InvoiceID,
-        CustomerID: datos.CustomerID ?? '',
-        DeliveryMethodID: datos.DeliveryMethodID ?? '',
-        CustomerPurchaseOrderNumber: datos.CustomerPurchaseOrderNumber ?? '',
-        ContactPersonID: datos.ContactPersonID ?? '',
-        SalespersonPersonID: datos.SalespersonPersonID ?? '',
-        InvoiceDate: datos.InvoiceDate ? String(datos.InvoiceDate).slice(0, 10) : '',
-        DeliveryInstructions: datos.DeliveryInstructions ?? ''
-      });
-      setModoFormulario('editar');
+      const res = await pedir(`/clientes/${encodeURIComponent(nombre)}`);
+      setCliente(res.data[0]);
     } catch (err) {
       setError(err.message);
     }
   };
 
-  const cambiarFormulario = evento => {
-    const { name, value } = evento.target;
-    setFormulario(anterior => ({ ...anterior, [name]: value }));
-  };
-
-  const guardar = async evento => {
-    evento.preventDefault();
-    setGuardando(true);
-    setError('');
-    setMensaje('');
-
+  // Enlace del nombre del producto: abre su detalle
+  const verProducto = async linea => {
+    const id = linea?.StockItemID ?? linea;
     try {
-      const datos = {
-        CustomerID: Number(formulario.CustomerID),
-        DeliveryMethodID: Number(formulario.DeliveryMethodID),
-        CustomerPurchaseOrderNumber: formulario.CustomerPurchaseOrderNumber.trim(),
-        ContactPersonID: Number(formulario.ContactPersonID),
-        SalespersonPersonID: Number(formulario.SalespersonPersonID),
-        InvoiceDate: formulario.InvoiceDate,
-        DeliveryInstructions: formulario.DeliveryInstructions.trim()
-      };
-
-      if (modoFormulario === 'nuevo') {
-        await enviar('/ventas', 'POST', datos);
-        setMensaje('Venta creada correctamente.');
-      } else {
-        await enviar(`/ventas/${formulario.InvoiceID}`, 'PUT', datos);
-        setMensaje('Venta actualizada correctamente.');
-      }
-
-      setModoFormulario(null);
-      setPagina(1);
-      await recargar();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setGuardando(false);
-    }
-  };
-
-  const eliminar = async fila => {
-    if (!window.confirm(`¿Eliminar la venta con factura #${fila.InvoiceID}?`)) return;
-    try {
-      await enviar(`/ventas/${fila.InvoiceID}`, 'DELETE');
-      setMensaje('Venta eliminada correctamente.');
-      setVentas(actuales => actuales.filter(item => item.InvoiceID !== fila.InvoiceID));
+      const res = await pedir(`/productos/${id}`);
+      setProducto(res.data[0]);
     } catch (err) {
       setError(err.message);
     }
@@ -219,11 +189,6 @@ export default function Ventas() {
             {ventas.length} {ventas.length === 1 ? 'resultado' : 'resultados'}
           </span>
         </div>
-        <div className="modulo-acciones">
-          <button type="button" className="btn btn-primario" onClick={abrirNuevo}>
-            + Nueva venta
-          </button>
-        </div>
       </div>
 
       <div className="barra-filtros">
@@ -234,7 +199,6 @@ export default function Ventas() {
       </div>
 
       {error && <p className="mensaje mensaje-error">{error}</p>}
-      {mensaje && <p className="mensaje mensaje-exito">{mensaje}</p>}
 
       <div className="tabla-wrapper">
         <Tabla
@@ -243,8 +207,14 @@ export default function Ventas() {
           onFila={verDetalle}
           acciones={fila => (
             <div className="acciones-fila">
-              <button type="button" onClick={e => { e.stopPropagation(); abrirEdicion(fila); }}>Editar</button>
-              <button type="button" onClick={e => { e.stopPropagation(); eliminar(fila); }}>Eliminar</button>
+              <button
+                type="button"
+                style={{ background: '#16a34a', color: '#fff', borderColor: '#16a34a' }}
+                onClick={e => { e.stopPropagation(); verDetalle(fila); }}
+              >
+                Ver detalles
+              </button>
+              <span aria-hidden="true" />
             </div>
           )}
         />
@@ -265,105 +235,71 @@ export default function Ventas() {
             <Factura
               encabezado={detalle.encabezado}
               lineas={detalle.lineas || []}
-              // Cuando tengas la navegación entre módulos, pasa aquí:
-              // onVerCliente={h => ...}  onVerProducto={l => ...}
+              onVerCliente={verCliente}
+              onVerProducto={verProducto}
             />
           </div>
         </div>
       )}
 
-      {modoFormulario && (
-        <div className="fondo" onClick={() => setModoFormulario(null)}>
-          <form className="ventana formulario" onSubmit={guardar} onClick={e => e.stopPropagation()}>
-            <button type="button" className="btn-cerrar" onClick={() => setModoFormulario(null)} aria-label="Cerrar">✕</button>
-            <h2>{modoFormulario === 'nuevo' ? 'Nueva venta' : 'Editar venta'}</h2>
+      {cliente && (
+        <div className="fondo" onClick={() => setCliente(null)}>
+          <div className="ventana" onClick={e => e.stopPropagation()}>
+            <button type="button" className="btn-cerrar" onClick={() => setCliente(null)} aria-label="Cerrar">✕</button>
 
-            <label>
-              ID de cliente
-              <input
-                name="CustomerID"
-                type="number"
-                min="1"
-                value={formulario.CustomerID}
-                onChange={cambiarFormulario}
-                required
-              />
-            </label>
+            <h2>Detalle del cliente</h2>
 
-            <label>
-              ID de método de entrega
-              <input
-                name="DeliveryMethodID"
-                type="number"
-                min="1"
-                value={formulario.DeliveryMethodID}
-                onChange={cambiarFormulario}
-                required
-              />
-            </label>
+            <dl>
+              {camposCliente.map(([etiqueta, clave]) => {
+                const valor = cliente[clave];
+                const vacio = valor === null || valor === undefined || valor === '';
+                return (
+                  <div key={clave}>
+                    <dt>{etiqueta}</dt>
+                    <dd>
+                      {vacio
+                        ? 'Vacío'
+                        : clave === 'Sitio_web'
+                          ? <a href={valor} target="_blank" rel="noreferrer">{valor}</a>
+                          : String(valor)}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
 
-            <label>
-              Número de orden de compra
-              <input
-                name="CustomerPurchaseOrderNumber"
-                maxLength={20}
-                value={formulario.CustomerPurchaseOrderNumber}
-                onChange={cambiarFormulario}
-                required
-              />
-            </label>
+            <h2>Ubicación de entrega</h2>
+            <Mapa
+              latitud={cliente.Latitud}
+              longitud={cliente.Longitud}
+              titulo={cliente.Nombre}
+              subtitulo={cliente.DeliveryAddressLine1}
+            />
+          </div>
+        </div>
+      )}
 
-            <label>
-              ID persona de contacto
-              <input
-                name="ContactPersonID"
-                type="number"
-                min="1"
-                value={formulario.ContactPersonID}
-                onChange={cambiarFormulario}
-                required
-              />
-            </label>
+      {producto && (
+        <div className="fondo" onClick={() => setProducto(null)}>
+          <div className="ventana" onClick={e => e.stopPropagation()}>
+            <button type="button" className="btn-cerrar" onClick={() => setProducto(null)} aria-label="Cerrar">✕</button>
 
-            <label>
-              ID vendedor
-              <input
-                name="SalespersonPersonID"
-                type="number"
-                min="1"
-                value={formulario.SalespersonPersonID}
-                onChange={cambiarFormulario}
-                required
-              />
-            </label>
+            <h2>Detalle del producto</h2>
 
-            <label>
-              Fecha de factura
-              <input
-                name="InvoiceDate"
-                type="date"
-                value={formulario.InvoiceDate}
-                onChange={cambiarFormulario}
-                required
-              />
-            </label>
-
-            <label>
-              Instrucciones de entrega
-              <textarea
-                name="DeliveryInstructions"
-                maxLength={500}
-                rows={3}
-                value={formulario.DeliveryInstructions}
-                onChange={cambiarFormulario}
-                required
-              />
-            </label>
-
-            <button type="submit" disabled={guardando}>
-              {guardando ? 'Guardando...' : 'Guardar'}
-            </button>
-          </form>
+            <dl>
+              {camposProducto.map(([etiqueta, clave]) => {
+                const valor = producto[clave];
+                const vacio = valor === null || valor === undefined || valor === '';
+                const formatear = FORMATOS_PRODUCTO[clave];
+                return (
+                  <div key={clave}>
+                    <dt>{etiqueta}</dt>
+                    <dd>{vacio ? 'Vacío' : formatear ? formatear(valor) : String(valor)}</dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </div>
         </div>
       )}
     </section>

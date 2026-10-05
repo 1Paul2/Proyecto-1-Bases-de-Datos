@@ -4,11 +4,11 @@ const EMPRESA = 'Wide World Importers';
 
 const numero = n =>
   n === null || n === undefined || n === ''
-    ? '—'
+    ? 'Vacío'
     : Number(n).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const fecha = valor => {
-  if (!valor) return '—';
+  if (!valor) return 'Vacío';
   const [anio, mes, dia] = String(valor).slice(0, 10).split('-');
   return `${dia}/${mes}/${anio}`;
 };
@@ -39,8 +39,11 @@ function Ola({ posicion }) {
 
 export default function Factura({ encabezado, lineas = [], onVerCliente, onVerProducto }) {
   const h = encabezado;
-  // Los totales los calcula el SP (SubTotal, TotalImpuesto, TotalFactura); aquí solo se muestran
-  const hayTotales = h.TotalFactura !== null && h.TotalFactura !== undefined;
+  // Los totales los calcula el SP (Subtotal, TotalTax, TotalAmount); aquí solo se muestran
+  const subtotal = h.Subtotal ?? h.SubTotal;
+  const impuestos = h.TotalTax ?? h.TotalImpuesto;
+  const total = h.TotalAmount ?? h.TotalFactura;
+  const hayTotales = total !== null && total !== undefined;
 
   return (
     <article className="factura">
@@ -53,16 +56,16 @@ export default function Factura({ encabezado, lineas = [], onVerCliente, onVerPr
             <h3>Datos del cliente</h3>
             <p>
               Nombre:{' '}
-              <Enlace onClick={onVerCliente && (() => onVerCliente(h))}>{h.CustomerName ?? '—'}</Enlace>
+              <Enlace onClick={onVerCliente && (() => onVerCliente(h))}>{h.CustomerName ?? 'Vacío'}</Enlace>
             </p>
-            <p>Contacto: {h.ContactPerson ?? '—'}</p>
-            <p>Orden de compra: {h.CustomerPurchaseOrderNumber || '—'}</p>
+            <p>Contacto: {h.ContactPerson ?? 'Vacío'}</p>
+            <p>Orden de compra: {h.CustomerPurchaseOrderNumber || 'Vacío'}</p>
           </section>
 
           <section className="factura-der">
             <h3>Datos de la empresa</h3>
             <p>Nombre: {EMPRESA}</p>
-            <p>Vendedor: {h.Salesperson ?? '—'}</p>
+            <p>Vendedor: {h.Salesperson ?? 'Vacío'}</p>
           </section>
         </div>
 
@@ -108,15 +111,15 @@ export default function Factura({ encabezado, lineas = [], onVerCliente, onVerPr
 
         <div className="factura-resumen">
           <div className="factura-notas">
-            <p>Método de entrega: {h.DeliveryMethod ?? '—'}</p>
-            <p>Instrucciones de entrega: {h.DeliveryInstructions || '—'}</p>
+            <p>Método de entrega: {h.DeliveryMethod ?? 'Vacío'}</p>
+            <p>Instrucciones de entrega: {h.DeliveryInstructions || 'Vacío'}</p>
           </div>
 
           {hayTotales && (
             <div className="factura-totales">
-              <div><span>Subtotal</span><span>{numero(h.SubTotal)}</span></div>
-              <div><span>Impuestos</span><span>{numero(h.TotalImpuesto)}</span></div>
-              <div className="factura-total"><span>Total</span><span>{numero(h.TotalFactura)}</span></div>
+              <div><span>Subtotal</span><span>{numero(subtotal)}</span></div>
+              <div><span>Impuestos</span><span>{numero(impuestos)}</span></div>
+              <div className="factura-total"><span>Total</span><span>{numero(total)}</span></div>
             </div>
           )}
         </div>

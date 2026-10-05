@@ -2,17 +2,29 @@ USE WideWorldImporters;
 GO
 
  -- #3
-
 CREATE OR ALTER PROCEDURE sp_top5_productos_ganancia
-    @anio INT = NULL   
+    @anio INT = NULL,
+    @anioFin INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF @anio IS NULL AND @anioFin IS NOT NULL
+        SET @anio = @anioFin;
+
+    IF @anio IS NOT NULL AND @anioFin IS NULL
+        SET @anioFin = @anio;
+
     IF @anio IS NOT NULL
-       AND NOT EXISTS (SELECT 1 FROM Syn_Invoices WHERE YEAR(InvoiceDate) = @anio)
     BEGIN
-        THROW 50001, 'El año indicado no existe en la base de datos.', 1;
+        IF NOT EXISTS (SELECT 1 FROM Syn_Invoices WHERE YEAR(InvoiceDate) = @anio)
+            THROW 50001, 'El año indicado no existe en la base de datos.', 1;
+
+        IF NOT EXISTS (SELECT 1 FROM Syn_Invoices WHERE YEAR(InvoiceDate) = @anioFin)
+            THROW 50002, 'El año final no existe en la base de datos.', 1;
+
+        IF @anio > @anioFin
+            THROW 50003, 'El año de inicio no puede ser mayor que el año final.', 1;
     END;
 
     WITH GananciaPorProducto AS (
@@ -24,7 +36,7 @@ BEGIN
         FROM Syn_Invoices I
         INNER JOIN Syn_InvoiceLines IL ON IL.InvoiceID = I.InvoiceID
         INNER JOIN Syn_StockItems SI ON SI.StockItemID = IL.StockItemID
-        WHERE @anio IS NULL OR YEAR(I.InvoiceDate) = @anio
+        WHERE @anio IS NULL OR YEAR(I.InvoiceDate) BETWEEN @anio AND @anioFin
         GROUP BY YEAR(I.InvoiceDate), SI.StockItemID, SI.StockItemName
     ),
     Ranking AS (

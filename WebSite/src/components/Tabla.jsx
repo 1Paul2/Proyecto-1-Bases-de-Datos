@@ -1,5 +1,5 @@
 function formatearValor(valor) {
-  if (valor === null || valor === undefined || valor === '') return '—';
+  if (valor === null || valor === undefined || valor === '') return 'Vacío';
 
   // Fecha ISO
   if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(valor)) {

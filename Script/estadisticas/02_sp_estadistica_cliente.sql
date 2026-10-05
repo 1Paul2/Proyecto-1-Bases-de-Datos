@@ -1,11 +1,11 @@
 USE WideWorldImporters;
 GO
 
- -- #2
+-- #2
 
 CREATE OR ALTER PROCEDURE sp_estadistica_cliente
-    @NomCliente VARCHAR(100),
-    @categoria VARCHAR(100)
+    @NomCliente VARCHAR(100) = '',
+    @categoria VARCHAR(100) = ''
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -20,13 +20,13 @@ BEGIN
         INNER JOIN Syn_CustomerCategories CC ON CC.CustomerCategoryID = C.CustomerCategoryID
         INNER JOIN Syn_Invoices I ON I.CustomerID = C.CustomerID
         INNER JOIN Syn_InvoiceLines IL ON IL.InvoiceID = I.InvoiceID
-        WHERE C.CustomerName LIKE '%' + @NomCliente + '%'
-          AND CC.CustomerCategoryName LIKE '%' + @categoria + '%'
+        WHERE C.CustomerName LIKE '%' + ISNULL(@NomCliente, '') + '%'
+          AND CC.CustomerCategoryName LIKE '%' + ISNULL(@categoria, '') + '%'
         GROUP BY C.CustomerName, CC.CustomerCategoryName, I.InvoiceID
     )
     SELECT
-        CustomerName AS Cliente,
-        CustomerCategoryName AS Categoria,
+        CASE WHEN GROUPING(CustomerName) = 1 THEN 'Total general' ELSE CustomerName END AS Cliente,
+        CASE WHEN GROUPING(CustomerCategoryName) = 1 THEN 'Total' ELSE CustomerCategoryName END AS Categoria,
         MIN(TotalFactura) AS Minimo,
         MAX(TotalFactura) AS Maximo,
         AVG(TotalFactura) AS Promedio

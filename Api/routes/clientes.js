@@ -6,7 +6,6 @@ const camposObligatorios = [
   'CustomerName',
   'CustomerCategoryID',
   'PrimaryContactPersonID',
-  'BillToCustomerID',
   'DeliveryMethodID',
   'DeliveryCityID',
   'PostalCityID',

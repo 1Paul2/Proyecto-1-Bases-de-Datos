@@ -48,7 +48,9 @@ const formularioInicial = {
   PhoneNumber: '', FaxNumber: '', WebsiteURL: '', DeliveryAddressLine1: '',
   DeliveryAddressLine2: '', PostalAddressLine1: '', PostalAddressLine2: '',
   DeliveryLatitude: '', DeliveryLongitude: '', BankAccountBranch: '',
-  BankAccountName: '', BankAccountNumber: '', PaymentDays: 30, LastEditedBy: ''
+  BankAccountName: '', BankAccountNumber: '', PaymentDays: 30,
+  // Dato de auditoría: no se pide en pantalla. Lo ideal es que lo asigne la API.
+  LastEditedBy: 1
 };
 
 export default function Proveedores() {
@@ -141,7 +143,7 @@ export default function Proveedores() {
         BankAccountName: datos.BankAccountName ?? '',
         BankAccountNumber: datos.BankAccountNumber ?? '',
         PaymentDays: datos.PaymentDays ?? 30,
-        LastEditedBy: datos.LastEditedBy ?? ''
+        LastEditedBy: datos.LastEditedBy ?? 1
       });
       setError('');
       setMensaje('');
@@ -253,6 +255,7 @@ export default function Proveedores() {
           onFila={verDetalle}
           acciones={fila => (
             <div className="acciones-fila">
+              <button type="button" onClick={e => { e.stopPropagation(); verDetalle(fila); }}>Ver detalles</button>
               <button type="button" onClick={e => { e.stopPropagation(); abrirEdicion(fila); }}>Editar</button>
               <button type="button" onClick={e => { e.stopPropagation(); eliminar(fila); }}>Eliminar</button>
             </div>
@@ -290,7 +293,7 @@ export default function Proveedores() {
                     <dt>{etiqueta}</dt>
                     <dd>
                       {vacio
-                        ? '—'
+                        ? 'Vacío'
                         : clave === 'WebsiteURL'
                           ? <a href={valor} target="_blank" rel="noreferrer">{valor}</a>
                           : String(valor)}
@@ -330,12 +333,13 @@ export default function Proveedores() {
             <label>Fax<input name="FaxNumber" value={formulario.FaxNumber} onChange={cambiarFormulario} required /></label>
             <label>Sitio web<input name="WebsiteURL" type="url" value={formulario.WebsiteURL} onChange={cambiarFormulario} required /></label>
             <label>Dirección entrega<input name="DeliveryAddressLine1" value={formulario.DeliveryAddressLine1} onChange={cambiarFormulario} required /></label>
+            <label>Dirección entrega adicional<input name="DeliveryAddressLine2" value={formulario.DeliveryAddressLine2} onChange={cambiarFormulario} /></label>
             <label>Dirección postal<input name="PostalAddressLine1" value={formulario.PostalAddressLine1} onChange={cambiarFormulario} required /></label>
+            <label>Dirección postal adicional<input name="PostalAddressLine2" value={formulario.PostalAddressLine2} onChange={cambiarFormulario} /></label>
             <label>Sucursal bancaria<input name="BankAccountBranch" value={formulario.BankAccountBranch} onChange={cambiarFormulario} required /></label>
             <label>Nombre de cuenta<input name="BankAccountName" value={formulario.BankAccountName} onChange={cambiarFormulario} required /></label>
             <label>Número de cuenta<input name="BankAccountNumber" value={formulario.BankAccountNumber} onChange={cambiarFormulario} required /></label>
             <label>Días de pago<input name="PaymentDays" type="number" min="0" value={formulario.PaymentDays} onChange={cambiarFormulario} required /></label>
-            <label>Usuario que edita<input name="LastEditedBy" type="number" value={formulario.LastEditedBy} onChange={cambiarFormulario} required /></label>
             <label>Latitud<input name="DeliveryLatitude" type="number" step="0.000001" value={formulario.DeliveryLatitude} onChange={cambiarFormulario} /></label>
             <label>Longitud<input name="DeliveryLongitude" type="number" step="0.000001" value={formulario.DeliveryLongitude} onChange={cambiarFormulario} /></label>
             <button type="submit" disabled={guardando}>
