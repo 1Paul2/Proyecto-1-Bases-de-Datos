@@ -5,6 +5,11 @@
 Aplicación web para gestionar y consultar la base de datos de ejemplo **WideWorldImporters** de Microsoft. Toda la búsqueda, filtrado, agrupación y cálculo de datos se hace en **SQL Server** mediante procedimientos almacenados. La API y la aplicación web solo envían parámetros y muestran los resultados.
 
 ---
+## Estado Proyecto
+
+Terminado 100%
+
+---
 
 ## Integrantes
 
