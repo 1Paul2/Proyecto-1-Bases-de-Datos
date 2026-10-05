@@ -11,6 +11,33 @@ function faltantes(body, campos) {
   return campos.filter(campo => body[campo] === undefined || body[campo] === null || body[campo] === '');
 }
 
+// Las líneas llegan como arreglo y se envían al SP en un solo texto:
+// 'StockItemID|Cantidad|Precio|Impuesto|Descripción;...'
+// (solo se da formato al texto; el cálculo de impuestos y totales lo hace el SP)
+function textoLineas(lineas) {
+  if (!Array.isArray(lineas) || lineas.length === 0) return null;
+  return lineas
+    .map(l => [
+      Number.parseInt(l.StockItemID, 10),
+      Number.parseInt(l.Quantity, 10),
+      Number(l.UnitPrice),
+      Number(l.TaxRate),
+      String(l.Description ?? '').replace(/[|;]/g, ' ').trim()
+    ].join('|'))
+    .join(';');
+}
+
+function lineasInvalidas(lineas) {
+  if (!Array.isArray(lineas) || lineas.length === 0) return 'Debe incluir al menos una línea de factura.';
+  const mala = lineas.findIndex(l =>
+    !Number.isInteger(Number.parseInt(l.StockItemID, 10)) ||
+    !(Number.parseInt(l.Quantity, 10) > 0) ||
+    !(Number(l.UnitPrice) >= 0) ||
+    !(Number(l.TaxRate) >= 0)
+  );
+  return mala >= 0 ? `La línea ${mala + 1} tiene datos inválidos.` : null;
+}
+
 function parametrosVenta(request, body) {
   return request
     .input('CustomerID', sql.Int, body.CustomerID)
@@ -19,7 +46,8 @@ function parametrosVenta(request, body) {
     .input('ContactPersonID', sql.Int, body.ContactPersonID)
     .input('SalespersonPersonID', sql.Int, body.SalespersonPersonID)
     .input('InvoiceDate', sql.Date, body.InvoiceDate)
-    .input('DeliveryInstructions', sql.NVarChar(500), body.DeliveryInstructions);
+    .input('DeliveryInstructions', sql.NVarChar(500), body.DeliveryInstructions)
+    .input('Lines', sql.NVarChar(sql.MAX), textoLineas(body.Lineas));
 }
 
 function estadoError(err) {
@@ -51,6 +79,10 @@ router.post('/', async (req, res) => {
   if (requeridos.length > 0) {
     return res.status(400).json({ error: `Campos obligatorios: ${requeridos.join(', ')}` });
   }
+  const errorLineas = lineasInvalidas(req.body.Lineas);
+  if (errorLineas) {
+    return res.status(400).json({ error: errorLineas });
+  }
 
   try {
     const pool = await poolPromise;
@@ -71,11 +103,16 @@ router.put('/:id', async (req, res) => {
   if (requeridos.length > 0) {
     return res.status(400).json({ error: `Campos obligatorios: ${requeridos.join(', ')}` });
   }
+  const errorLineas = lineasInvalidas(req.body.Lineas);
+  if (errorLineas) {
+    return res.status(400).json({ error: errorLineas });
+  }
 
   try {
     const pool = await poolPromise;
     await parametrosVenta(pool.request(), req.body)
       .input('InvoiceID', sql.Int, id)
+      .input('BillToCustomerID', sql.Int, req.body.BillToCustomerID ?? req.body.CustomerID)
       .execute('SP_UpdateSale');
     res.status(204).send();
   } catch (err) {

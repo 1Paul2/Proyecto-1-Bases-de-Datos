@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { pedir } from '../Api';
+import { enviar, pedir } from '../Api';
 import Filtros from '../components/Filtros';
 import Tabla from '../components/Tabla';
 import Paginacion from '../components/Paginacion';
@@ -75,6 +75,20 @@ const filtrosIniciales = {
   max: ''
 };
 
+const hoy = () => new Date().toISOString().slice(0, 10);
+
+const lineaVacia = { StockItemID: '', Quantity: '', UnitPrice: '', TaxRate: '15', Description: '' };
+
+const formularioInicial = () => ({
+  CustomerID: '',
+  DeliveryMethodID: '',
+  CustomerPurchaseOrderNumber: '',
+  ContactPersonID: '',
+  SalespersonPersonID: '',
+  InvoiceDate: hoy(),
+  DeliveryInstructions: ''
+});
+
 export default function Ventas() {
   const [filtros, setFiltros] = useState(filtrosIniciales);
   const [ventas, setVentas] = useState([]);
@@ -83,6 +97,12 @@ export default function Ventas() {
   const [cliente, setCliente] = useState(null);
   const [producto, setProducto] = useState(null);
   const [error, setError] = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [nueva, setNueva] = useState(false);
+  const [formulario, setFormulario] = useState(formularioInicial());
+  const [lineas, setLineas] = useState([{ ...lineaVacia }]);
+  const [guardando, setGuardando] = useState(false);
+  const [recarga, setRecarga] = useState(0);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -99,7 +119,7 @@ export default function Ventas() {
         setError('');
       })
       .catch(err => setError(err.message));
-  }, [filtros]);
+  }, [filtros, recarga]);
 
   const cambiarFiltro = (nombre, valor) => {
     setPagina(1);
@@ -142,6 +162,49 @@ export default function Ventas() {
       setProducto(res.data[0]);
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const abrirNueva = () => {
+    setFormulario(formularioInicial());
+    setLineas([{ ...lineaVacia }]);
+    setError('');
+    setMensaje('');
+    setNueva(true);
+  };
+
+  const cambiarFormulario = evento => {
+    const { name, value } = evento.target;
+    setFormulario(anterior => ({ ...anterior, [name]: value }));
+  };
+
+  const cambiarLinea = (indice, nombre, valor) => {
+    setLineas(actuales => actuales.map((l, i) => (i === indice ? { ...l, [nombre]: valor } : l)));
+  };
+
+  const agregarLinea = () => setLineas(actuales => [...actuales, { ...lineaVacia }]);
+
+  const quitarLinea = indice =>
+    setLineas(actuales => (actuales.length === 1 ? actuales : actuales.filter((_, i) => i !== indice)));
+
+  // Se envían los datos tal cual; el impuesto y el total los calcula el procedimiento almacenado
+  const guardar = async evento => {
+    evento.preventDefault();
+    setGuardando(true);
+    setError('');
+    setMensaje('');
+
+    try {
+      const res = await enviar('/ventas', 'POST', { ...formulario, Lineas: lineas });
+      setNueva(false);
+      setPagina(1);
+      setRecarga(n => n + 1);
+      const numero = res?.data?.NewInvoiceID;
+      setMensaje(numero ? `Venta creada correctamente. Factura #${numero}.` : 'Venta creada correctamente.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -189,6 +252,11 @@ export default function Ventas() {
             {ventas.length} {ventas.length === 1 ? 'resultado' : 'resultados'}
           </span>
         </div>
+        <div className="modulo-acciones">
+          <button type="button" className="btn btn-primario" onClick={abrirNueva}>
+            + Nueva venta
+          </button>
+        </div>
       </div>
 
       <div className="barra-filtros">
@@ -199,6 +267,7 @@ export default function Ventas() {
       </div>
 
       {error && <p className="mensaje mensaje-error">{error}</p>}
+      {mensaje && <p className="mensaje mensaje-exito">{mensaje}</p>}
 
       <div className="tabla-wrapper">
         <Tabla
@@ -209,7 +278,6 @@ export default function Ventas() {
             <div className="acciones-fila">
               <button
                 type="button"
-                style={{ background: '#16a34a', color: '#fff', borderColor: '#16a34a' }}
                 onClick={e => { e.stopPropagation(); verDetalle(fila); }}
               >
                 Ver detalles
@@ -226,6 +294,46 @@ export default function Ventas() {
         porPagina={POR_PAGINA}
         onCambio={setPagina}
       />
+
+      {nueva && (
+        <div className="fondo" onClick={() => setNueva(false)}>
+          <form className="ventana formulario" onSubmit={guardar} onClick={e => e.stopPropagation()}>
+            <button type="button" className="btn-cerrar" onClick={() => setNueva(false)} aria-label="Cerrar">✕</button>
+            <h2>Nueva venta</h2>
+
+            <label>Cliente (ID)<input name="CustomerID" type="number" min="1" value={formulario.CustomerID} onChange={cambiarFormulario} required /></label>
+            <label>Método de entrega (ID)<input name="DeliveryMethodID" type="number" min="1" value={formulario.DeliveryMethodID} onChange={cambiarFormulario} required /></label>
+            <label>Número de orden<input name="CustomerPurchaseOrderNumber" type="text" maxLength={20} value={formulario.CustomerPurchaseOrderNumber} onChange={cambiarFormulario} required /></label>
+            <label>Persona de contacto (ID)<input name="ContactPersonID" type="number" min="1" value={formulario.ContactPersonID} onChange={cambiarFormulario} required /></label>
+            <label>Vendedor (ID)<input name="SalespersonPersonID" type="number" min="1" value={formulario.SalespersonPersonID} onChange={cambiarFormulario} required /></label>
+            <label>Fecha de la factura<input name="InvoiceDate" type="date" value={formulario.InvoiceDate} onChange={cambiarFormulario} required /></label>
+            <label className="formulario-ancho">Instrucciones de entrega<input name="DeliveryInstructions" type="text" maxLength={500} value={formulario.DeliveryInstructions} onChange={cambiarFormulario} required /></label>
+
+            <h3 className="formulario-ancho">Productos de la factura</h3>
+
+            {lineas.map((l, i) => (
+              <div key={i} className="formulario-ancho" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr)) minmax(0, 2fr) auto', gap: '10px', alignItems: 'end' }}>
+                <label>Producto (ID)<input type="number" min="1" value={l.StockItemID} onChange={e => cambiarLinea(i, 'StockItemID', e.target.value)} required /></label>
+                <label>Cantidad<input type="number" min="1" value={l.Quantity} onChange={e => cambiarLinea(i, 'Quantity', e.target.value)} required /></label>
+                <label>Precio unitario<input type="number" min="0" step="0.01" value={l.UnitPrice} onChange={e => cambiarLinea(i, 'UnitPrice', e.target.value)} required /></label>
+                <label>Impuesto (%)<input type="number" min="0" step="0.01" value={l.TaxRate} onChange={e => cambiarLinea(i, 'TaxRate', e.target.value)} required /></label>
+                <label>Descripción<input type="text" value={l.Description} onChange={e => cambiarLinea(i, 'Description', e.target.value)} /></label>
+                <button type="button" className="btn btn-fantasma" onClick={() => quitarLinea(i)} disabled={lineas.length === 1}>Eliminar</button>
+              </div>
+            ))}
+
+            <div className="formulario-ancho">
+              <button type="button" className="btn btn-fantasma" onClick={agregarLinea}>+ Agregar producto</button>
+            </div>
+
+            <div className="formulario-ancho">
+              <button type="submit" className="btn btn-primario" disabled={guardando}>
+                {guardando ? 'Guardando...' : 'Guardar venta'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {detalle && (
         <div className="fondo" onClick={() => setDetalle(null)}>
