@@ -1,115 +1,51 @@
-# Sistema de Gestión WideWorldImporters
+# Sistema de Gestión Wide World Importers
 
-Proyecto 1 – Bases de Datos 2
+**Proyecto 1 – Bases de Datos 2**
 
----
-
-## Nombre y carné de los integrantes
-
-- Poll Garro Vargas – 2024129001
-- Angelo Piedra Castro – 2024101262
+Aplicación web para gestionar y consultar la base de datos de ejemplo **WideWorldImporters** de Microsoft. Toda la búsqueda, filtrado, agrupación y cálculo de datos se hace en **SQL Server** mediante procedimientos almacenados. La API y la aplicación web solo envían parámetros y muestran los resultados.
 
 ---
 
-## Estado del proyecto
+## Integrantes
 
-### Objetivos alcanzados
-
-#### SQL Server
-
-- **Sinónimos:** se crearon sinónimos para todas las tablas utilizadas (`Syn_Customers`, `Syn_Suppliers`, `Syn_StockItems`, `Syn_Invoices`, etc.) y los stored procedures acceden a las tablas únicamente a través de ellos.
-- **Transacciones:** todos los procedimientos de inserción, actualización y eliminación usan `BEGIN TRANSACTION`, `COMMIT` y `ROLLBACK` con manejo de errores mediante `TRY/CATCH`. Si algo falla no se guarda nada.
-- **Procesamiento en la base de datos:** todo el filtrado, agrupación y cálculo se hace en stored procedures. La API y la web solo reciben y muestran resultados.
-- **Stored Procedures de gestión (CRUD):**
-  - Clientes: `SP_LISTA_CLIENTES`, `SP_CLIENTES`, `SP_InsertCustomer`, `SP_UpdateCustomer`, `SP_DeleteCustomer`.
-  - Proveedores: `SP_GetSuppliers`, `SP_GetSupplierDetails`, `SP_GetSupplierCategories`, `SP_InsertSupplier`, `SP_UpdateSupplier`, `SP_DeleteSupplier`.
-  - Productos: `SP_GetStockItems`, `SP_GetStockItemDetails`, `SP_GetStockGroups`, `SP_InsertStockItem`, `SP_UpdateStockItem`, `SP_DeleteStockItem`.
-  - Ventas: `SP_GetSales`, `SP_GetSaleHeader`, `SP_GetSaleDetails`, `SP_InsertSale`, `SP_UpdateSale`, `SP_DeleteSale`.
-- **Stored Procedures de estadísticas y reportes (10 en total):**
-  1. `sp_estadistica_proveedor`: monto mínimo, máximo y promedio de los pedidos a proveedores, por proveedor y categoría, con `ROLLUP`. Filtrable por proveedor y categoría.
-  2. `sp_estadistica_cliente`: monto mínimo, máximo y promedio de las facturas de los clientes, por cliente y categoría, con `ROLLUP`. Filtrable por cliente y categoría.
-  3. `sp_top5_productos_ganancia`: top 5 de productos con más ganancia por año, con `DENSE_RANK` y `PARTITION BY`. Filtrable por año.
-  4. `sp_top5_clientes_facturas`: top 5 de clientes con más facturas por año y su monto total, con `DENSE_RANK` y `PARTITION BY`. Filtrable por rango de años.
-  5. `sp_top5_proveedores_ordenes`: top 5 de proveedores con más órdenes por año y su monto total, con `DENSE_RANK` y `PARTITION BY`. Filtrable por rango de años.
-  6. `sp_matriz_ventas_categoria_anio`: matriz de ventas por categoría de producto (filas) y año (columnas), con `PIVOT`.
-  7. `sp_seguimiento_compras_cliente`: resumen mensual por cliente con monto total, primera y última factura, cantidad total, mínima y máxima. Filtrable por año, mes y categoría.
-  8. `sp_seguimiento_compras_proveedor`: lo mismo por proveedor, con sus órdenes de compra. Filtrable por año, mes y categoría.
-  9. `sp_rotacion_inventario`: rotación de inventario y promedio de días de rotación por producto y año. Filtrable por año, categoría y proveedor.
-  10. `sp_metodo_envio_favorito`: método de envío favorito según el lugar al que se envió la venta, ordenado por cantidad de ventas. Filtrable por año, mes, categoría de cliente, categoría de producto y producto.
-- **Ejemplos de ejecución:** `Script/ejemplo_ejecucion.sql` ejecuta los reportes, las consultas de cada módulo, el ciclo crear / cambiar / borrar de productos y ventas, y una prueba de `ROLLBACK`.
-
-#### API (Node.js + Express)
-
-- API REST con Express y conexión a SQL Server mediante `mssql`.
-- Una ruta por módulo: `/api/clientes`, `/api/proveedores`, `/api/productos`, `/api/ventas` y `/api/estadisticas`.
-- Todas las consultas se hacen mediante stored procedures; la API no agrupa ni calcula datos.
-- Validación de campos obligatorios antes de ejecutar los procedimientos.
-- Manejo de errores con códigos HTTP apropiados (400 para errores de validación, 500 para errores internos).
-- Al arrancar, `init.js` carga automáticamente todos los scripts de `Script/` en la base de datos.
-
-#### Aplicación web (React + Vite)
-
-- **Clientes:** tabla con filtro por nombre (texto libre), restaurar filtros y orden alfabético. Detalle en ventana aparte con mapa de la ubicación. Crear, editar y eliminar.
-- **Proveedores:** tabla con filtro por nombre y por categoría, restaurar filtros y orden alfabético. Detalle en ventana aparte. Crear, editar y eliminar.
-- **Productos:** tabla con filtro por nombre y por grupo, con la cantidad disponible. Restaurar filtros y orden alfabético. Detalle en ventana aparte. Crear, editar y eliminar.
-- **Ventas:** tabla con filtros acumulativos por cliente, rango de fechas y rango de montos. Restaurar filtros. Detalle en ventana aparte con la factura completa (encabezado, líneas, impuesto y total). Desde la factura se puede abrir el detalle del cliente y de cada producto.
-- **Estadísticas:** selector con los 10 reportes, cada uno con sus filtros. Resultados en tabla con paginación.
-- **General:** botón «Ver detalles» en cada fila, paginación, mensajes de éxito y error, y los campos sin dato se muestran como «Vacío». En los reportes con `ROLLUP`, las filas de subtotal dicen «Total».
-
-### Objetivos no alcanzados y decisiones
-
-- **Filtro por subcategoría en los reportes 7 y 8:** la base de datos solo tiene un nivel de categoría (categorías de cliente, de proveedor y grupos de producto). No existen subcategorías, así que esos reportes se filtran por año, mes y categoría.
-- **Ventas sin crear, editar ni eliminar desde la web:** una factura emitida no debe alterarse. La interfaz solo consulta ventas. Los procedimientos `SP_InsertSale`, `SP_UpdateSale` y `SP_DeleteSale` existen con su transacción y están disponibles en la API y en `ejemplo_ejecucion.sql`.
-- **Impuesto en las ventas:** `ExtendedPrice` de cada línea ya incluye el impuesto (cantidad × precio + impuesto), igual que en la base original. El encabezado de la factura calcula subtotal, impuestos y total a partir de las líneas.
-- **Matriz de ventas (reporte 6):** se agrupa por categoría de producto, una fila por categoría. Los datos terminan en mayo de 2016, por eso 2016 aparece incompleto.
-- **Rotación de inventario (reporte 9):** la base no trae saldo de apertura y los movimientos de compra y venta no cuadran con la existencia actual. Se parte de la existencia actual, se retrocede con los movimientos y, si aun así el resultado fuera negativo, se usa el saldo inicial mínimo que evita inventarios negativos (nunca menor que cero). Rotación = unidades vendidas ÷ inventario promedio, con inventario promedio = (inicial + final) ÷ 2. Con estos datos la rotación sale baja en muchos productos y el inventario final de algunos supera la existencia real; es una limitación de los datos de WideWorldImporters, no del cálculo.
-- **Borrado de productos y clientes con historial:** un producto con ventas, compras o movimientos no se puede eliminar; el procedimiento revierte todo y devuelve un mensaje claro.
+| Nombre | Carné |
+|--------|-------|
+| Poll Garro Vargas | 2024129001 |
+| Angelo Piedra Castro | 2024101262 |
 
 ---
 
-## Instalación y ejecución
+## Video de demostración
 
-1. **Base de datos.** Restaurar `WideWorldImporters-Full.bak` en SQL Server.
-2. **API.** Crear el archivo `Api/.env` (se puede copiar de `Api/.env.example`):
-
-   ```
-   DB_USER=sa
-   DB_PASSWORD=<su clave>
-   DB_SERVER=localhost
-   DB_NAME=WideWorldImporters
-   PORT=3000
-   ```
-
-   Luego, desde la carpeta `Api`:
-
-   ```bash
-   npm install
-   node index.js
-   ```
-
-   Al iniciar, la API crea los sinónimos y los stored procedures. No hace falta ejecutar los scripts a mano.
-3. **Web.** Desde la carpeta `WebSite`:
-
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-4. **Ejemplos de ejecución (opcional):**
-
-   ```bash
-   sqlcmd -S localhost -U sa -P '<clave>' -d WideWorldImporters -C -I -i Script/ejemplo_ejecucion.sql
-   ```
-
-   La opción `-I` es necesaria para los procedimientos de ventas.
+[Ver video en YouTube](https://youtube.com)
 
 ---
 
-## Enlace del video
+## Contenido
 
-[Video de demostración](https://youtube.com)
+1. [Arquitectura](#arquitectura)
+2. [Tecnologías utilizadas](#tecnologías-utilizadas)
+3. [Estructura del repositorio](#estructura-del-repositorio)
+4. [Instalación y ejecución](#instalación-y-ejecución)
+5. [Objetivos alcanzados](#objetivos-alcanzados)
+6. [Objetivos no alcanzados y decisiones](#objetivos-no-alcanzados-y-decisiones)
+7. [Referencia de la API](#referencia-de-la-api)
 
-> El video está configurado como **público** para que pueda ser visto.
+---
+
+## Arquitectura
+
+```
+┌──────────────────┐   HTTP/JSON   ┌──────────────────┐   EXEC SP   ┌───────────────────────────┐
+│  WebSite (React) │ ────────────► │   Api (Express)  │ ──────────► │  SQL Server               │
+│  Muestra datos y │ ◄──────────── │  Recibe filtros, │ ◄────────── │  Stored procedures        │
+│  envía filtros   │               │  ejecuta SPs     │  recordset  │  → Sinónimos → Tablas     │
+└──────────────────┘               └──────────────────┘             └───────────────────────────┘
+```
+
+- **SQL Server:** los procedimientos almacenados acceden a las tablas únicamente a través de **sinónimos**. Las operaciones de inserción, actualización y borrado usan **transacciones**.
+- **API:** cada ruta llama a un único procedimiento almacenado y devuelve el resultado tal cual. No filtra, agrupa ni calcula.
+- **WebSite:** presenta los datos en tablas, ventanas de detalle y formularios. No manipula ni agrupa datos.
 
 ---
 
@@ -117,32 +53,277 @@ Proyecto 1 – Bases de Datos 2
 
 | Capa | Tecnología |
 |------|-----------|
-| Base de datos | SQL Server – WideWorldImporters |
-| Backend / API | Node.js, Express.js, mssql |
-| Frontend | React 18, Vite |
-| Mapas | Leaflet + React-Leaflet |
-| Estilos | CSS personalizado |
+| Base de datos | SQL Server – WideWorldImporters (`WideWorldImporters-Full.bak`) |
+| API | Node.js, Express 5, mssql, dotenv, cors |
+| Aplicación web | React 19, Vite |
+| Mapas | Leaflet + React-Leaflet (OpenStreetMap) |
+| Estilos | CSS propio |
+
+---
 
 ## Estructura del repositorio
 
 ```
-├── Script/                      # Todo el código SQL
-│   ├── ejemplo_ejecucion.sql    # Ejemplos de ejecución
-│   ├── sql/                     # Sinónimos y consultas de cada módulo
-│   ├── CRUD/                    # Insert, Update y Delete
+├── Script/                          # Todo el código SQL
+│   ├── sql/
+│   │   ├── sinonimos.sql            # Los 20 sinónimos
+│   │   ├── sp_clientes.sql          # Consultas del módulo de clientes
+│   │   ├── sp_proveedores.sql       # Consultas del módulo de proveedores
+│   │   ├── sp_productos.sql         # Consultas del módulo de productos
+│   │   ├── sp_ventas.sql            # Consultas del módulo de ventas
+│   │   └── ejemplo_ejecucion.sql    # Script de ejemplo que ejecuta los SPs
+│   ├── CRUD/                        # Insert, Update y Delete de cada módulo
 │   │   ├── CLIENTES/
 │   │   ├── PROVEEDORES/
 │   │   ├── PRODUCTOS/
 │   │   └── VENTAS/
-│   └── estadisticas/            # Los 10 reportes
-├── Api/                         # Servidor API (Express.js)
-│   ├── index.js
-│   ├── db.js
-│   ├── init.js
-│   └── routes/
-└── WebSite/                     # Aplicación web (React)
+│   └── estadisticas/                # Los 10 reportes (01_ … 10_)
+├── Api/                             # Servicio API
+│   ├── index.js                     # Servidor Express y registro de rutas
+│   ├── db.js                        # Conexión a SQL Server
+│   ├── init.js                      # Carga los scripts SQL al iniciar
+│   └── routes/                      # Una ruta por módulo
+│       ├── clientes.js
+│       ├── proveedores.js
+│       ├── productos.js
+│       ├── ventas.js
+│       ├── estadisticas.js
+│       └── .env.example             # Plantilla de variables de entorno
+└── WebSite/                         # Aplicación web
     └── src/
-        ├── pages/               # Módulos principales
-        ├── components/          # Componentes reutilizables
-        └── styles/              # Hojas de estilo
+        ├── App.jsx                  # Menú y navegación entre módulos
+        ├── Api.js                   # Funciones para llamar a la API
+        ├── pages/                   # Inicio, Clientes, Proveedores, Productos, Ventas, Estadísticas
+        ├── components/              # Tabla, Filtros, Paginación, Detalle, Factura, Mapa
+        └── styles/                  # Hojas de estilo
 ```
+
+---
+
+## Instalación y ejecución
+
+### Requisitos
+
+- SQL Server 2019 o superior
+- Node.js 20 o superior
+- Respaldo `WideWorldImporters-Full.bak` ([descarga](https://github.com/Microsoft/sql-server-samples/releases/tag/wide-world-importers-v1.0))
+
+### 1. Base de datos
+
+Restaurar `WideWorldImporters-Full.bak` en SQL Server con el nombre `WideWorldImporters`.
+
+### 2. API
+
+Crear el archivo `Api/.env` (la plantilla está en `Api/routes/.env.example`):
+
+```env
+DB_USER=sa
+DB_PASSWORD=<su clave>
+DB_SERVER=localhost
+DB_NAME=WideWorldImporters
+PORT=3001
+```
+
+> La aplicación web espera la API en `http://localhost:3001/api` (ver `WebSite/src/Api.js`).
+
+Desde la carpeta `Api`:
+
+```bash
+npm install
+node index.js
+```
+
+Al iniciar, `init.js` ejecuta automáticamente todos los scripts de `Script/` (sinónimos, consultas, CRUD y estadísticas). **No hace falta correr los scripts a mano.**
+
+### 3. Aplicación web
+
+Desde la carpeta `WebSite`:
+
+```bash
+npm install
+npm run dev
+```
+
+Abrir la dirección que muestra Vite (por defecto `http://localhost:5173`).
+
+### 4. Script de ejemplo (opcional)
+
+```bash
+sqlcmd -S localhost -U sa -P '<clave>' -d WideWorldImporters -C -I -i Script/sql/ejemplo_ejecucion.sql
+```
+
+La opción `-I` (`QUOTED_IDENTIFIER ON`) es necesaria para los procedimientos de ventas. El script tiene tres partes:
+
+1. Los 10 reportes de estadísticas con filtros de ejemplo.
+2. Las búsquedas y detalles de cada módulo.
+3. Un ciclo crear → actualizar → eliminar de productos y ventas dentro de una transacción, más una prueba de `ROLLBACK`. La base queda igual que antes.
+
+---
+
+## Objetivos alcanzados
+
+### SQL Server
+
+#### Sinónimos
+
+Se crearon 20 sinónimos en `Script/sql/sinonimos.sql`. Todos los procedimientos usan los sinónimos y nunca el nombre real de la tabla.
+
+`Syn_BuyingGroups`, `Syn_Cities`, `Syn_Colors`, `Syn_Countries`, `Syn_CustomerCategories`, `Syn_Customers`, `Syn_DeliveryMethods`, `Syn_InvoiceLines`, `Syn_Invoices`, `Syn_PackageTypes`, `Syn_People`, `Syn_PurchaseOrderLines`, `Syn_PurchaseOrders`, `Syn_StateProvinces`, `Syn_StockGroups`, `Syn_StockItemHoldings`, `Syn_StockItems`, `Syn_StockItemStockGroups`, `Syn_SupplierCategories`, `Syn_Suppliers`.
+
+#### Transacciones
+
+Los procedimientos de inserción, actualización y borrado usan `BEGIN TRANSACTION`, `COMMIT` y `ROLLBACK` dentro de un bloque `TRY/CATCH`. Si algún paso falla, se revierte todo y se devuelve un mensaje de error con `THROW`.
+
+#### Procedimientos de gestión
+
+| Módulo | Listado con filtros | Detalle | Catálogos | Insertar | Actualizar | Eliminar |
+|--------|--------------------|---------|-----------|----------|-----------|----------|
+| Clientes | `SP_LISTA_CLIENTES` | `SP_CLIENTES` | — | `SP_InsertCustomer` | `SP_UpdateCustomer` | `SP_DeleteCustomer` |
+| Proveedores | `SP_GetSuppliers` | `SP_GetSupplierDetails` | `SP_GetSupplierCategories` | `SP_InsertSupplier` | `SP_UpdateSupplier` | `SP_DeleteSupplier` |
+| Productos | `SP_GetStockItems` | `SP_GetStockItemDetails` | `SP_GetStockGroups` | `SP_InsertStockItem` | `SP_UpdateStockItem` | `SP_DeleteStockItem` |
+| Ventas | `SP_GetSales` | `SP_GetSaleHeader`, `SP_GetSaleDetails` | — | `SP_InsertSale` | `SP_UpdateSale` | `SP_DeleteSale` |
+
+#### Reportes y estadísticas
+
+| # | Procedimiento | Qué muestra | Técnica | Filtros |
+|---|---------------|-------------|---------|---------|
+| 1 | `sp_estadistica_proveedor` | Monto máximo, mínimo y promedio de compras a proveedores, por proveedor y categoría (`PurchaseOrders`) | `ROLLUP` | Proveedor y categoría (texto libre) |
+| 2 | `sp_estadistica_cliente` | Monto máximo, mínimo y promedio de ventas a clientes, por cliente y categoría (`Invoices`) | `ROLLUP` | Cliente y categoría (texto libre) |
+| 3 | `sp_top5_productos_ganancia` | Top 5 de productos con más ganancia por año | `DENSE_RANK`, `PARTITION BY` | Año |
+| 4 | `sp_top5_clientes_facturas` | Top 5 de clientes con más facturas por año y su monto total | `DENSE_RANK`, `PARTITION BY` | Rango de años |
+| 5 | `sp_top5_proveedores_ordenes` | Top 5 de proveedores con más órdenes de compra por año y su monto total | `DENSE_RANK`, `PARTITION BY` | Rango de años |
+| 6 | `sp_matriz_ventas_categoria_anio` | Matriz de ventas: categorías de producto (filas) por año (columnas) | `PIVOT` | — |
+| 7 | `sp_seguimiento_compras_cliente` | Resumen mensual por cliente: monto total, primera y última factura del mes, cantidad total, mínima y máxima | Agregados por mes | Año, mes y categoría |
+| 8 | `sp_seguimiento_compras_proveedor` | Lo mismo que el 7, por proveedor y sus órdenes de compra | Agregados por mes | Año, mes y categoría |
+| 9 | `sp_rotacion_inventario` | Rotación de inventario y promedio de días de rotación por producto y año | Inventario promedio | Año, categoría y proveedor |
+| 10 | `sp_metodo_envio_favorito` | Método de envío favorito según el lugar al que se envió la venta, ordenado por cantidad de ventas | `DENSE_RANK`, `PARTITION BY` | Año, mes, categoría de cliente, categoría de producto y producto |
+
+Los años de los filtros se validan contra los años existentes en la base de datos.
+
+### API (Node.js + Express)
+
+- Una ruta por módulo: `/api/clientes`, `/api/proveedores`, `/api/productos`, `/api/ventas` y `/api/estadisticas`.
+- Todas las consultas se hacen con procedimientos almacenados y parámetros tipados (`mssql`). No hay SQL armado con texto ni cálculos en la API.
+- Valida los campos obligatorios antes de llamar al procedimiento.
+- Devuelve códigos HTTP apropiados: `400` para datos inválidos o errores de negocio lanzados por el SP (`THROW 50000+`) y `500` para errores internos.
+- Al iniciar, `init.js` crea en la base todos los sinónimos y procedimientos de la carpeta `Script/`.
+
+### Aplicación web (React + Vite)
+
+Todos los módulos cumplen con: tabla de resultados, **filtros acumulativos**, botón **Restaurar filtros** que vuelve a consultar todo, **orden alfabético ascendente** por defecto, **paginación** y **ventana de detalle** aparte (con el botón «Ver detalles» o al hacer clic en la fila).
+
+#### Clientes
+
+- **Tabla:** nombre del cliente, categoría y método de entrega.
+- **Filtro:** nombre (texto libre, búsqueda por coincidencia parcial).
+- **Detalle:** nombre, categoría, grupo de compra, contactos primario y alternativo, cliente por facturar, método de entrega, ciudad de entrega, código postal, teléfono y fax, días de gracia, sitio web (enlace), dirección de entrega y postal, y **mapa** con la ubicación.
+- **Gestión:** crear, editar y eliminar.
+
+#### Proveedores
+
+- **Tabla:** nombre del proveedor, categoría y método de entrega.
+- **Filtros:** nombre (texto libre) y categoría (selección).
+- **Detalle:** código del proveedor, nombre, categoría, contactos primario y alternativo, método de entrega, ciudad y código postal de entrega, teléfono y fax, sitio web, dirección de entrega y postal, **mapa** con la ubicación, banco, número de cuenta y días de gracia.
+- **Gestión:** crear, editar y eliminar.
+
+#### Productos (inventario)
+
+- **Tabla:** nombre del producto, grupo y cantidad en inventario (Holdings).
+- **Filtros:** nombre (texto libre) y grupo (selección).
+- **Detalle:** nombre, proveedor (enlace a su detalle), color, unidad de empaque, empaque exterior, cantidad por empaque, marca, talla, impuesto, precio unitario, precio de venta recomendado, peso, palabras clave, cantidad disponible y ubicación.
+- **Gestión:** crear, editar y eliminar.
+
+#### Ventas
+
+- **Tabla:** número de factura, fecha, cliente, método de entrega y monto.
+- **Filtros:** cliente (texto libre), rango de fechas y rango de montos.
+- **Detalle (factura):**
+  - *Encabezado:* número de factura, cliente (enlace a su detalle), método de entrega, número de orden, persona de contacto, vendedor, fecha e instrucciones de entrega.
+  - *Líneas:* producto (enlace a su detalle), cantidad, precio unitario, impuesto aplicado, monto del impuesto y total por línea.
+- **Gestión:** crear ventas nuevas con una o varias líneas («+ Agregar producto» / «Eliminar»). El impuesto y los totales los calcula el procedimiento almacenado.
+
+#### Estadísticas
+
+- Selector con los 10 reportes; cada uno muestra solo sus filtros.
+- Resultados en tabla con paginación. En los reportes con `ROLLUP`, las filas de subtotal y total general se muestran como «Total».
+
+#### Presentación y usabilidad
+
+- Paleta de colores consistente, diseño adaptable a pantallas pequeñas.
+- Validación de formularios y mensajes claros de éxito y error.
+- Los campos sin dato se muestran como «Vacío».
+
+---
+
+## Objetivos no alcanzados y decisiones
+
+- **Filtro por subcategoría en los reportes 7 y 8:** WideWorldImporters solo tiene un nivel de categoría (categorías de cliente, de proveedor y grupos de producto). No existen subcategorías, por lo que esos reportes se filtran por año, mes y categoría.
+- **Editar y eliminar ventas desde la web:** una factura emitida no debería alterarse, así que la interfaz solo permite consultar y crear ventas. Los procedimientos `SP_UpdateSale` y `SP_DeleteSale` sí existen con su transacción, están expuestos en la API (`PUT` y `DELETE /api/ventas/:id`) y se prueban en `ejemplo_ejecucion.sql`.
+- **Impuesto en las ventas:** el `ExtendedPrice` de cada línea ya incluye el impuesto (cantidad × precio + impuesto), igual que en la base original. El encabezado de la factura obtiene el subtotal, los impuestos y el total a partir de las líneas.
+- **Matriz de ventas (reporte 6):** los datos de la base terminan en mayo de 2016, por eso ese año aparece incompleto.
+- **Rotación de inventario (reporte 9):** la base no trae saldo de apertura y los movimientos de compra y venta no cuadran con la existencia actual. Se parte de la existencia actual y se retrocede con los movimientos; si el resultado fuera negativo, se usa el saldo inicial mínimo que evita inventarios negativos. La fórmula es *rotación = unidades vendidas ÷ inventario promedio*, con *inventario promedio = (inicial + final) ÷ 2*. Por la calidad de los datos la rotación sale baja en muchos productos; es una limitación de la base, no del cálculo.
+- **Eliminar registros con historial:** un cliente, proveedor o producto con ventas, compras o movimientos no se puede eliminar. El procedimiento revierte la transacción y devuelve un mensaje claro que la web muestra al usuario.
+
+---
+
+## Referencia de la API
+
+URL base: `http://localhost:3001/api`
+
+### Clientes — `/clientes`
+
+| Método | Ruta | Procedimiento | Parámetros |
+|--------|------|---------------|------------|
+| GET | `/clientes` | `SP_LISTA_CLIENTES` | `?apodo=` nombre (texto libre) |
+| GET | `/clientes/:nombre` | `SP_CLIENTES` | Nombre del cliente |
+| POST | `/clientes` | `SP_InsertCustomer` | Cuerpo JSON |
+| PUT | `/clientes/:id` | `SP_UpdateCustomer` | Cuerpo JSON |
+| DELETE | `/clientes/:id` | `SP_DeleteCustomer` | — |
+
+### Proveedores — `/proveedores`
+
+| Método | Ruta | Procedimiento | Parámetros |
+|--------|------|---------------|------------|
+| GET | `/proveedores` | `SP_GetSuppliers` | `?name=` `&categoria=` |
+| GET | `/proveedores/categorias` | `SP_GetSupplierCategories` | — |
+| GET | `/proveedores/:id` | `SP_GetSupplierDetails` | — |
+| POST | `/proveedores` | `SP_InsertSupplier` | Cuerpo JSON |
+| PUT | `/proveedores/:id` | `SP_UpdateSupplier` | Cuerpo JSON |
+| DELETE | `/proveedores/:id` | `SP_DeleteSupplier` | — |
+
+### Productos — `/productos`
+
+| Método | Ruta | Procedimiento | Parámetros |
+|--------|------|---------------|------------|
+| GET | `/productos` | `SP_GetStockItems` | `?name=` `&grupo=` |
+| GET | `/productos/grupos` | `SP_GetStockGroups` | — |
+| GET | `/productos/:id` | `SP_GetStockItemDetails` | — |
+| POST | `/productos` | `SP_InsertStockItem` | Cuerpo JSON |
+| PUT | `/productos/:id` | `SP_UpdateStockItem` | Cuerpo JSON |
+| DELETE | `/productos/:id` | `SP_DeleteStockItem` | — |
+
+### Ventas — `/ventas`
+
+| Método | Ruta | Procedimiento | Parámetros |
+|--------|------|---------------|------------|
+| GET | `/ventas` | `SP_GetSales` | `?cliente=` `&desde=` `&hasta=` `&min=` `&max=` |
+| GET | `/ventas/:id` | `SP_GetSaleHeader` + `SP_GetSaleDetails` | — |
+| POST | `/ventas` | `SP_InsertSale` | Cuerpo JSON con `Lineas` |
+| PUT | `/ventas/:id` | `SP_UpdateSale` | Cuerpo JSON con `Lineas` |
+| DELETE | `/ventas/:id` | `SP_DeleteSale` | — |
+
+### Estadísticas — `/estadisticas`
+
+| # | Ruta | Procedimiento | Parámetros |
+|---|------|---------------|------------|
+| 1 | `/estadisticas/proveedor` | `sp_estadistica_proveedor` | `?proveedor=` `&categoria=` |
+| 2 | `/estadisticas/cliente` | `sp_estadistica_cliente` | `?cliente=` `&categoria=` |
+| 3 | `/estadisticas/top-productos` | `sp_top5_productos_ganancia` | `?anio=` |
+| 4 | `/estadisticas/top-clientes` | `sp_top5_clientes_facturas` | `?anioInicio=` `&anioFin=` |
+| 5 | `/estadisticas/top-proveedores` | `sp_top5_proveedores_ordenes` | `?anioInicio=` `&anioFin=` |
+| 6 | `/estadisticas/matriz` | `sp_matriz_ventas_categoria_anio` | — |
+| 7 | `/estadisticas/seguimiento-clientes` | `sp_seguimiento_compras_cliente` | `?anio=` `&mes=` `&categoria=` |
+| 8 | `/estadisticas/seguimiento-proveedores` | `sp_seguimiento_compras_proveedor` | `?anio=` `&mes=` `&categoria=` |
+| 9 | `/estadisticas/rotacion` | `sp_rotacion_inventario` | `?anio=` `&categoria=` `&proveedor=` |
+| 10 | `/estadisticas/envio-favorito` | `sp_metodo_envio_favorito` | `?anio=` `&mes=` `&catCliente=` `&catProducto=` `&producto=` `&soloFavorito=` |
+
